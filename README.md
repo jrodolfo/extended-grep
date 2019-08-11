@@ -61,7 +61,7 @@ Find the result search file, Transaction-ID.xml.html, at the search-results fold
 Find the result search file, p-dcs-flightsummary.filename.html, at the search-results folder.
 
 #### More examples of usage:
-https://github.ibm.com/roliveir/extended-grep/blob/master/images/search-examples.png
+
 ![Search example](https://github.com/jrodolfo/extended-grep/blob/master/images/search-examples.png "Search example")
 
 ![Search results folder](https://github.com/jrodolfo/extended-grep/blob/master/images/search-results-folder.png "Search results folder")
