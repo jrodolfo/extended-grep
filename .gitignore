@@ -1,0 +1,7 @@
+# IntelliJ
+*.iml
+.idea/
+out/
+
+# Mac users
+.DS_Store
