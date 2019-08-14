@@ -7,7 +7,7 @@ grepx() {
 
   grep -lrai \
   --exclude-dir={.metadata,.jazz5,.jazzShed,.git,.mule,target,bin,*Documentation,RoboHelp*} \
-  --exclude={*.jar,*.class,*.zip,*.sql,*.doc,*.docx,*.ppt,*.pptx,*.xls,*.xlsx} \
+  --exclude={*.jar,*.class,*.zip,*.sql,*.doc,*.docx,*.ppt,*.pptx,*.xls,*.xlsx,*.png,*.jpg,*.gif,*.Png,*.pdf,*.mp4,*.exe,*.msi,*.7z} \
   "$MATCH" ./ | while read file
   do
       echo
@@ -24,7 +24,7 @@ grepx_x_filename() {
 
   grep -lrai \
   --exclude-dir={.metadata,.jazz5,.jazzShed,.git,.mule,target,bin,*Documentation,RoboHelp*} \
-  --exclude={*.jar,*.class,*.zip,*.sql,*.doc,*.docx,*.ppt,*.pptx,*.xls,*.xlsx} \
+  --exclude={*.jar,*.class,*.zip,*.sql,*.doc,*.docx,*.ppt,*.pptx,*.xls,*.xlsx,*.png,*.jpg,*.gif,*.Png,*.pdf,*.mp4,*.exe,*.msi,*.7z} \
   "$MATCH" ./ | while read file
   do
       echo -e "\e[35m${file}"
@@ -56,7 +56,7 @@ grepx_android() {
 
   grep -lrai \
   --exclude-dir={.gradle,.idea,.git,gradle,build} \
-  --exclude={*.jar,*.class,*.zip,*.apk,*.iml,gradlew} \
+  --exclude={*.jar,*.class,*.zip,*.apk,*.iml,gradlew,*.png,*.jpg,*.gif,*.Png,*.pdf,*.mp4,*.exe,*.msi,*.7z} \
   "$MATCH" ./ | while read file
   do
       echo
@@ -74,7 +74,7 @@ grepx_code() {
 
   grep -lrai \
   --exclude-dir={.metadata,.jazz5,.git,.mule,target,bin,*Documentation,RoboHelp*} \
-  --exclude={*.jar,*.class,*.zip,*.properties,*.sql,*.jsp,*.xhtml,*.html,*.htm,*.doc,*.docx,*.ppt,*.pptx,*.xls,*.xlsx} \
+  --exclude={*.jar,*.class,*.zip,*.properties,*.sql,*.jsp,*.xhtml,*.html,*.htm,*.doc,*.docx,*.ppt,*.pptx,*.xls,*.xlsx,*.png,*.jpg,*.gif,*.Png,*.pdf,*.mp4,*.exe,*.msi,*.7z} \
   "$MATCH" ./ | while read file
   do
       echo
@@ -92,7 +92,7 @@ grepx_web() {
 
   grep -lrai \
   --exclude-dir={.metadata,.jazz5,.git,.mule,target,bin,*Documentation,RoboHelp*} \
-  --exclude={*.jar,*.class,*.zip,*.properties,*.sql,*.java,*.xml,*.doc,*.docx,*.ppt,*.pptx,*.xls,*.xlsx} \
+  --exclude={*.jar,*.class,*.zip,*.properties,*.sql,*.java,*.xml,*.doc,*.docx,*.ppt,*.pptx,*.xls,*.xlsx,*.png,*.jpg,*.gif,*.Png,*.pdf,*.mp4,*.exe,*.msi,*.7z} \
   "$MATCH" ./ | while read file
   do
       echo
@@ -233,6 +233,11 @@ grepx_docs() {
   find . \
   -not \( -path "*/.git*" -prune \) \
   -not \( -path "*/.metadata*" -prune \) \
+  -not \( -path "*/.mule*" -prune \) \
+  -not \( -path "*/.idea*" -prune \) \
+  -not \( -path "*/bin*" -prune \) \
+  -not \( -path "*/target*" -prune \) \
+  -not \( -path "*/.metadata*" -prune \) \
   -not \( -path "*/.jazz5*" -prune \) \
   -not \( -path "*/bin*" -prune \) \
   \( -iname "*.doc*" -o -iname "*.pdf" -o -iname "*.ppt*" -o -iname "*.xls*" \) \
@@ -253,6 +258,7 @@ grepx_filename() {
   -not \( -path "*/bin*" -prune \) \
   -not \( -path "*/target*" -prune \) \
   -not \( -path "*/.mule*" -prune \) \
+  -not \( -path "*/.idea*" -prune \) \
   -not \( -path "*/*Documentation*" -prune \) \
   -not \( -path "*/RoboHelp*" -prune \) \
   \( -not -iname "*.class" -and -not -iname "*.properties" -and -not -iname "*.sql" \
