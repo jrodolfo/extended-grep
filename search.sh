@@ -22,7 +22,7 @@ else
 		echo If search is used with one argument, the extended grep function used is one that extends grep to preform a useful search for development
 		echo When search is used with two arguments, FUNCTION is any string from {codescan, code, web, java, sql, xml, docs, filename, jar} where
 		echo -e ' \t ' x_filename: extend grap to preform a useful search for development - but only displays the file name
-		echo -e ' \t ' codescan: emulates the function of ES CodeScan tool... but actually work...
+		echo -e ' \t ' codescan: search inside code
 		echo -e ' \t ' android: search inside android projects
 		echo -e ' \t ' code: only search code files - including xml files for spring configs
 		echo -e ' \t ' web: only search web files

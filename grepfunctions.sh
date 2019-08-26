@@ -38,7 +38,7 @@ grepx_codescan() {
 
   grep -lrai \
   --exclude-dir={.metadata,.jazz5,.git,bin} \
-  --exclude={*.jar,*.class,*.zip} \
+  --exclude={*.jar,*.class,*.zip,*.png,*.jpg,*.gif,*.Png,*.pdf,*.mp4,*.exe,*.msi,*.7z} \
   "$MATCH" ./ | while read file
   do
       echo
