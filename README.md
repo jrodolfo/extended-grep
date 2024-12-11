@@ -4,7 +4,7 @@
 
 Steps to configure the extended grep functions.
 Note: if you are using Mac, you don't need to install cygwin,
-as you already have your home folder with your .bash_profile etc.
+as you already have Linux and your home folder with your .bash_profile etc.
 
 1) Install cygwin (https://www.cygwin.com). For example, I installed it at:
 
