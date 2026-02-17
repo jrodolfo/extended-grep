@@ -112,9 +112,9 @@ function Add-HtmlHeader([System.Text.StringBuilder]$sb, [string]$Query, [string]
   [void]$sb.AppendLine('mark.hit{background:var(--match-bg);color:var(--match-fg);padding:0 2px;border-radius:3px;font-weight:700;}')
   [void]$sb.AppendLine('.empty{background:var(--panel);border:1px solid var(--panel-border);padding:12px;border-radius:10px;color:var(--muted);}')
   [void]$sb.AppendLine('</style></head>')
-  [void]$sb.AppendLine("<body data-query=\"$(Escape-Html $Query)\">")
+  [void]$sb.AppendLine("<body data-query=`"$(Escape-Html $Query)`">")
   [void]$sb.AppendLine('<h1>extended-grep</h1>')
-  [void]$sb.AppendLine("<div class=\"meta\">profile: <strong>$(Escape-Html $Profile)</strong> | query: <strong>$(Escape-Html $Query)</strong></div>")
+  [void]$sb.AppendLine("<div class=`"meta`">profile: <strong>$(Escape-Html $Profile)</strong> | query: <strong>$(Escape-Html $Query)</strong></div>")
 }
 
 function Add-HtmlFooter([System.Text.StringBuilder]$sb) {
@@ -154,13 +154,14 @@ function Add-HtmlFooter([System.Text.StringBuilder]$sb) {
 }
 
 function Add-ContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
-  if ($Lines.Count -eq 0) {
+  $normalizedLines = @($Lines)
+  if ($normalizedLines.Count -eq 0) {
     [void]$sb.AppendLine('<div class="empty">No matches found.</div>')
     return
   }
 
   $currentFile = ''
-  foreach ($line in $Lines) {
+  foreach ($line in $normalizedLines) {
     if ($line -eq '--') {
       if (-not [string]::IsNullOrWhiteSpace($currentFile)) {
         [void]$sb.AppendLine('<div class="separator"></div>')
@@ -180,10 +181,10 @@ function Add-ContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
         }
         $currentFile = $filePath
         [void]$sb.AppendLine('<div class="file">')
-        [void]$sb.AppendLine("<div class=\"file-header\">$(Escape-Html $filePath)</div>")
+        [void]$sb.AppendLine("<div class=`"file-header`">$(Escape-Html $filePath)</div>")
       }
 
-      [void]$sb.AppendLine("<div class=\"row match\"><span class=\"line\">$(Escape-Html $lineNo)</span><span class=\"col\">$(Escape-Html $colNo)</span><span class=\"text\">$(Escape-Html $text)</span></div>")
+      [void]$sb.AppendLine("<div class=`"row match`"><span class=`"line`">$(Escape-Html $lineNo)</span><span class=`"col`">$(Escape-Html $colNo)</span><span class=`"text`">$(Escape-Html $text)</span></div>")
       continue
     }
 
@@ -199,10 +200,10 @@ function Add-ContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
         }
         $currentFile = $filePath
         [void]$sb.AppendLine('<div class="file">')
-        [void]$sb.AppendLine("<div class=\"file-header\">$(Escape-Html $filePath)</div>")
+        [void]$sb.AppendLine("<div class=`"file-header`">$(Escape-Html $filePath)</div>")
       }
 
-      [void]$sb.AppendLine("<div class=\"row context\"><span class=\"line\">$(Escape-Html $lineNo)</span><span class=\"col\">$(Escape-Html $colNo)</span><span class=\"text\">$(Escape-Html $text)</span></div>")
+      [void]$sb.AppendLine("<div class=`"row context`"><span class=`"line`">$(Escape-Html $lineNo)</span><span class=`"col`">$(Escape-Html $colNo)</span><span class=`"text`">$(Escape-Html $text)</span></div>")
       continue
     }
 
@@ -217,15 +218,15 @@ function Add-ContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
         }
         $currentFile = $filePath
         [void]$sb.AppendLine('<div class="file">')
-        [void]$sb.AppendLine("<div class=\"file-header\">$(Escape-Html $filePath)</div>")
+        [void]$sb.AppendLine("<div class=`"file-header`">$(Escape-Html $filePath)</div>")
       }
 
-      [void]$sb.AppendLine("<div class=\"row context\"><span class=\"line\">$(Escape-Html $lineNo)</span><span class=\"col\">-</span><span class=\"text\">$(Escape-Html $text)</span></div>")
+      [void]$sb.AppendLine("<div class=`"row context`"><span class=`"line`">$(Escape-Html $lineNo)</span><span class=`"col`">-</span><span class=`"text`">$(Escape-Html $text)</span></div>")
       continue
     }
 
     if (-not [string]::IsNullOrWhiteSpace($currentFile)) {
-      [void]$sb.AppendLine("<div class=\"row context\"><span class=\"line\">-</span><span class=\"col\">-</span><span class=\"text\">$(Escape-Html $line)</span></div>")
+      [void]$sb.AppendLine("<div class=`"row context`"><span class=`"line`">-</span><span class=`"col`">-</span><span class=`"text`">$(Escape-Html $line)</span></div>")
     }
   }
 
@@ -235,7 +236,8 @@ function Add-ContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
 }
 
 function Add-FilenameResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
-  if ($Lines.Count -eq 0) {
+  $normalizedLines = @($Lines)
+  if ($normalizedLines.Count -eq 0) {
     [void]$sb.AppendLine('<div class="empty">No files found.</div>')
     return
   }
@@ -243,7 +245,7 @@ function Add-FilenameResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
   [void]$sb.AppendLine('<div class="file">')
   [void]$sb.AppendLine('<div class="file-header">Matching files</div>')
   [void]$sb.AppendLine('<ul class="file-list">')
-  foreach ($line in $Lines) {
+  foreach ($line in $normalizedLines) {
     [void]$sb.AppendLine("<li>$(Escape-Html $line)</li>")
   }
   [void]$sb.AppendLine('</ul>')
@@ -253,7 +255,7 @@ function Add-FilenameResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
 function Render-Html([string]$InFile, [string]$OutFile, [string]$Query, [string]$Profile) {
   $lines = @()
   if (Test-Path $InFile) {
-    $lines = Get-Content -Path $InFile
+    $lines = @(Get-Content -Path $InFile)
   }
 
   $sb = [System.Text.StringBuilder]::new()
@@ -285,7 +287,11 @@ if (-not [string]::IsNullOrWhiteSpace($Arg2)) {
   $query = $Arg2
 }
 
-$resultsDir = Join-Path $HOME 'search-results'
+$resultsDir = if (-not [string]::IsNullOrWhiteSpace($env:SEARCH_RESULTS_DIR)) {
+  $env:SEARCH_RESULTS_DIR
+} else {
+  Join-Path $HOME 'search-results'
+}
 New-Item -Path $resultsDir -ItemType Directory -Force | Out-Null
 
 $safeQuery = Safe-Name $query
@@ -298,10 +304,10 @@ if ($profile -eq 'grepx') {
 $tempFile = [System.IO.Path]::GetTempFileName()
 try {
   if (Is-FilenameProfile $profile) {
-    Write-Host "Searching \"$query\" using filename profile \"$profile\"..."
+    Write-Host "Searching `"$query`" using filename profile `"$profile`"..."
     Run-FilenameSearch -Profile $profile -Query $query -OutFile $tempFile
   } else {
-    Write-Host "Searching \"$query\" using content profile \"$profile\"..."
+    Write-Host "Searching `"$query`" using content profile `"$profile`"..."
     Run-ContentSearch -Profile $profile -Query $query -OutFile $tempFile
   }
 

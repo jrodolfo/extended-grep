@@ -96,6 +96,10 @@ search filename p-dcs-flightsummary
 
 Each run creates an HTML file in `~/search-results`.
 
+Optional override:
+
+- Set `SEARCH_RESULTS_DIR` to write results to a custom directory.
+
 ## Notes
 
 - The generated HTML is plain and portable (no browser plugins required).
@@ -114,4 +118,12 @@ Windows PowerShell:
 ```powershell
 ./search.ps1 STRING
 ./search.ps1 PROFILE STRING
+```
+
+## Smoke Tests (Windows PowerShell)
+
+Run Pester smoke tests:
+
+```powershell
+Invoke-Pester ./tests/Search.Smoke.Tests.ps1
 ```
