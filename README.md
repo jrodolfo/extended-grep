@@ -1,69 +1,117 @@
 # extended-grep
 
-### Extend grep to perform a useful search. The script search for words inside files, and also search for files names.
+`extended-grep` is a wrapper around `rg` (ripgrep) that saves search results as HTML files in `~/search-results`.
 
-Steps to configure the extended grep functions.
-Note: if you are using Mac, you don't need to install cygwin,
-as you already have a Linux shell and your home folder with your .bash_profile etc.
+## Features
 
-1) Install cygwin (https://www.cygwin.com). For example, I installed it at:
+- Recursive project search with profiles (`grepx`, `code`, `xml`, `filename`, etc.)
+- Colorized HTML output per search for faster visual scanning
+- Works on macOS and Windows
 
-	C:\dev\cygwin\
-	
-2) Run the cygwin for the first time. This will create your home folder. For example, my home folder is:
-                                                                         
-    C:\dev\cygwin\home\RODOliveira
+## Prerequisites
 
-3) Create a bin folder inside your home folder. For example:
-	
-	C:\dev\cygwin\home\RODOliveira\bin
+- ripgrep (`rg`) installed and available on `PATH`
 
-4) Copy files grepfunctions.sh, ansi2html.sh, and search.sh to this bin folder.
+macOS:
 
-5) Find the file .bash_profile. For example, this file can be found on my machine at:
+```bash
+brew install ripgrep
+```
 
-	C:\dev\cygwin\home\RODOliveira\\.bash_profile
+Windows (PowerShell):
 
-And edit this file by adding the folder bin (created on previous step) to the the PATH, like this:
+```powershell
+winget install BurntSushi.ripgrep.MSVC
+```
 
-	# Set PATH so it includes user's private bin if it exists
-	if [ -d "${HOME}/bin" ] ; then
-	  PATH="${HOME}/bin:${PATH}"
-	fi
+## Install on macOS
 
-6) Find the file .bashrc. For example, on my machine this file can be found at:
+1. Clone this repository.
+2. Run:
 
-C:\dev\cygwin\home\RODOliveira\\.bashrc
- 
-Edit this file by adding an alias to search.sh:
+```bash
+./install-macos.sh
+```
 
-	# my own shortcuts
-	alias search='search.sh'
+3. Open a new terminal and run:
 
-7) Create a search-results folder inside your home folder. This folder will keep all results from your searches, as html files. When listing these files, you can order them by date, so that you have your latest search files results on the top. For example, on my machine the path to this folder is:
+```bash
+search additionalId
+```
 
-	C:\dev\cygwin\home\RODOliveira\search-results\
+## Install on Windows (PowerShell)
 
-8) Open a cygwin console, change directory to the folder where you want to run the search recursively, i.e. it will search inside all internal folders, minus folders like .mule, target etc (check the script grepfunctions.sh, the lines where you find --exclude-dir, for a complete list, which you are free to edit and add more folders that are irrelevant for your searches).
+1. Clone this repository.
+2. Run in PowerShell:
 
-#### Examples of usage:
+```powershell
+./install-windows.ps1
+```
 
-    $ search additionalId
-    Searching additionalId using default extended grep function...
-Find the result search file, additionalId.grepx.html, at the search-results folder.
+3. If script execution is blocked, run once (current user):
 
-    $ search xml Transaction-ID
-    Searching Transaction-ID using extended grep function type xml...
-Find the result search file, Transaction-ID.xml.html, at the search-results folder.
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
 
-    $ search filename p-dcs-flightsummary
-    Searching p-dcs-flightsummary using extended grep function type filename...
-Find the result search file, p-dcs-flightsummary.filename.html, at the search-results folder.
+4. Open a new PowerShell window and run:
 
-#### More examples of usage:
+```powershell
+search additionalId
+```
 
-![Search example](https://github.com/jrodolfo/extended-grep/blob/master/images/search-examples.png "Search example")
+## Usage
 
-![Search results folder](https://github.com/jrodolfo/extended-grep/blob/master/images/search-results-folder.png "Search results folder")
+```bash
+search STRING
+search PROFILE STRING
+```
 
-![Search result file](https://github.com/jrodolfo/extended-grep/blob/master/images/search-result-file.png "Search result file")
+Profiles:
+
+- `grepx` (default)
+- `codescan`
+- `android`
+- `code`
+- `web`
+- `java`
+- `java_filename`
+- `javascript`
+- `xhtml`
+- `css`
+- `sql`
+- `xml`
+- `docs`
+- `filename`
+- `x_filename`
+- `jar`
+
+Examples:
+
+```bash
+search additionalId
+search xml Transaction-ID
+search filename p-dcs-flightsummary
+```
+
+Each run creates an HTML file in `~/search-results`.
+
+## Notes
+
+- The generated HTML is plain and portable (no browser plugins required).
+- File naming is sanitized for cross-platform compatibility.
+- You can still run scripts directly from the repo:
+
+macOS/Linux shell:
+
+```bash
+./search.sh STRING
+./search.sh PROFILE STRING
+```
+
+Windows PowerShell:
+
+```powershell
+./search.ps1 STRING
+./search.ps1 PROFILE STRING
+```
