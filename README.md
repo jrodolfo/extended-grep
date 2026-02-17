@@ -63,9 +63,12 @@ search additionalId
 ## Usage
 
 ```bash
-search STRING
-search PROFILE STRING
+search
+search [OPTIONS] STRING
+search [OPTIONS] PROFILE STRING
 ```
+
+Running `search` with no arguments prints the help with all options.
 
 Profiles:
 
@@ -90,9 +93,21 @@ Examples:
 
 ```bash
 search additionalId
+search --deep additionalId
+search --max-per-file 50 additionalId
 search xml Transaction-ID
 search filename p-dcs-flightsummary
 ```
+
+Options:
+
+- `--deep` or `--hidden`: include hidden files/directories (slower)
+- `--context N`: context lines before/after each hit (default `3`)
+- `--max-per-file N`: limit matches per file (default `200`, `0` disables limit)
+- `--max-filesize SIZE`: skip files larger than `SIZE` (default `1M`, use `none` to disable)
+- `--max-scan-lines N`: cap lines collected from `rg` before rendering (default `20000`, `0` disables cap)
+- `--max-line-length N`: trim very long result lines before rendering (default `2000`, `0` disables trimming)
+- `--max-render-lines N`: cap rendered HTML lines (default `12000`, `0` disables cap)
 
 Each run creates an HTML file in `~/search-results`.
 

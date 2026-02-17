@@ -1,28 +1,74 @@
 param(
-  [Parameter(Position=0)]
-  [string]$Arg1,
-  [Parameter(Position=1)]
-  [string]$Arg2
+  [Parameter(ValueFromRemainingArguments=$true)]
+  [string[]]$CliArgs
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$FieldMatchSep = [string][char]31
+$FieldContextSep = [string][char]30
+$ContextBlockSep = [string][char]29
 
 function Show-Usage {
   @"
 Usage:
-  search.ps1 STRING
-  search.ps1 PROFILE STRING
+  search STRING
+  search PROFILE STRING
+  search [OPTIONS] STRING
+  search [OPTIONS] PROFILE STRING
 
 Profiles:
   grepx (default), codescan, android, code, web, java, java_filename,
   javascript, xhtml, css, sql, xml, docs, filename, x_filename, jar
+
+Options:
+  -h, --help                 Show this help message
+  --deep                     Include hidden files and directories
+  --hidden                   Alias for --deep
+  --context N                Context lines before/after each hit (default: 3)
+  --max-per-file N           Max matches per file (default: 200, 0 = unlimited)
+  --max-filesize SIZE        Skip files larger than SIZE (default: 1M, use 'none' for unlimited)
+  --max-scan-lines N         Cap lines collected from rg before rendering (default: 20000, 0 = unlimited)
+  --max-line-length N        Trim very long result lines before rendering (default: 2000, 0 = unlimited)
+  --max-render-lines N       Cap rendered lines in HTML (default: 12000, 0 = unlimited)
+
+Environment:
+  SEARCH_RESULTS_DIR         Output directory (default: ~/search-results)
+
+Examples:
+  search fox
+  search --deep fox
+  search --max-per-file 50 xml Transaction-ID
+  search filename p-dcs-flightsummary
 "@
 }
 
 function Escape-Html([string]$Text) {
   if ($null -eq $Text) { return '' }
   return $Text.Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;').Replace('"', '&quot;')
+}
+
+function Trim-TextForDisplay([string]$Text, [bool]$IsMatch, [string]$Query, [int]$MaxLineLength) {
+  if ($MaxLineLength -le 0 -or [string]::IsNullOrEmpty($Text) -or $Text.Length -le $MaxLineLength) {
+    return $Text
+  }
+
+  if ($IsMatch -and -not [string]::IsNullOrWhiteSpace($Query)) {
+    $idx = $Text.IndexOf($Query, [System.StringComparison]::OrdinalIgnoreCase)
+    if ($idx -ge 0) {
+      $start = $idx - [int]($MaxLineLength / 3)
+      $prefix = ''
+      if ($start -lt 0) {
+        $start = 0
+      } else {
+        $prefix = '... '
+      }
+      $len = [Math]::Min($MaxLineLength, $Text.Length - $start)
+      return $prefix + $Text.Substring($start, $len) + ' ... [trimmed]'
+    }
+  }
+
+  return $Text.Substring(0, $MaxLineLength) + ' ... [trimmed]'
 }
 
 function Safe-Name([string]$Text) {
@@ -38,7 +84,9 @@ function Get-CommonExcludeGlobs {
     '--glob=!**/.git/**', '--glob=!**/.idea/**', '--glob=!**/.metadata/**', '--glob=!**/.jazz5/**',
     '--glob=!**/.jazzShed/**', '--glob=!**/.mule/**', '--glob=!**/target/**', '--glob=!**/bin/**',
     '--glob=!**/*Documentation*/**', '--glob=!**/RoboHelp*/**', '--glob=!**/.gradle/**',
-    '--glob=!**/gradle/**', '--glob=!**/build/**'
+    '--glob=!**/gradle/**', '--glob=!**/build/**', '--glob=!**/node_modules/**', '--glob=!**/.next/**',
+    '--glob=!**/.cache/**', '--glob=!**/dist/**', '--glob=!**/out/**', '--glob=!**/coverage/**',
+    '--glob=!**/.venv/**', '--glob=!**/venv/**', '--glob=!**/tmp/**', '--glob=!**/logs/**'
   )
 }
 
@@ -46,8 +94,33 @@ function Is-FilenameProfile([string]$Profile) {
   return @('filename','docs','jar','java_filename','x_filename') -contains $Profile
 }
 
-function Get-ContentArgs([string]$Profile) {
-  $args = @('--hidden','--line-number','--column','--with-filename','--smart-case','--color=never','-A5','-B5')
+function Parse-Int([string]$Value, [string]$Name) {
+  $parsed = 0
+  if (-not [int]::TryParse($Value, [ref]$parsed) -or $parsed -lt 0) {
+    throw "$Name expects a non-negative integer"
+  }
+  return $parsed
+}
+
+function Get-ContentArgs(
+  [string]$Profile,
+  [bool]$IncludeHidden,
+  [int]$ContextLines,
+  [int]$MaxPerFile,
+  [string]$MaxFileSize
+) {
+  $args = @('--line-number','--with-filename','--smart-case','--color=never',"-A$ContextLines", "-B$ContextLines")
+  if ($IncludeHidden) {
+    $args += @('--hidden')
+  }
+  if ($MaxPerFile -gt 0) {
+    $args += @("--max-count=$MaxPerFile")
+  }
+  if (-not [string]::IsNullOrWhiteSpace($MaxFileSize)) {
+    $args += @("--max-filesize=$MaxFileSize")
+  }
+  $args += @("--field-match-separator=$FieldMatchSep", "--field-context-separator=$FieldContextSep", "--context-separator=$ContextBlockSep")
+
   $args += Get-CommonExcludeGlobs
 
   switch ($Profile) {
@@ -68,16 +141,13 @@ function Get-ContentArgs([string]$Profile) {
   return $args
 }
 
-function Run-ContentSearch([string]$Profile, [string]$Query, [string]$OutFile) {
-  $args = Get-ContentArgs -Profile $Profile
-  $args += @('--', $Query, '.')
-  $results = & rg @args
-  $results | Set-Content -Encoding UTF8 $OutFile
-}
-
-function Run-FilenameSearch([string]$Profile, [string]$Query, [string]$OutFile) {
+function Get-FilenameArgs([string]$Profile, [bool]$IncludeHidden) {
   $args = @('--files')
+  if ($IncludeHidden) {
+    $args += @('--hidden')
+  }
   $args += Get-CommonExcludeGlobs
+
   switch ($Profile) {
     'filename' { }
     'x_filename' { }
@@ -87,12 +157,41 @@ function Run-FilenameSearch([string]$Profile, [string]$Query, [string]$OutFile) 
     default { throw "Unknown profile: $Profile" }
   }
 
-  $files = & rg @args
+  return $args
+}
+
+function Run-ContentSearch(
+  [string]$Profile,
+  [string]$Query,
+  [string]$OutFile,
+  [bool]$IncludeHidden,
+  [int]$ContextLines,
+  [int]$MaxPerFile,
+  [string]$MaxFileSize,
+  [int]$MaxScanLines
+) {
+  $rgArgs = Get-ContentArgs -Profile $Profile -IncludeHidden $IncludeHidden -ContextLines $ContextLines -MaxPerFile $MaxPerFile -MaxFileSize $MaxFileSize
+  $rgArgs += @('--', $Query, '.')
+  if ($MaxScanLines -gt 0) {
+    $results = & rg @rgArgs | Select-Object -First $MaxScanLines
+  } else {
+    $results = & rg @rgArgs
+  }
+  $results | Set-Content -Encoding UTF8 $OutFile
+}
+
+function Run-FilenameSearch([string]$Profile, [string]$Query, [string]$OutFile, [bool]$IncludeHidden, [int]$MaxScanLines) {
+  $rgArgs = Get-FilenameArgs -Profile $Profile -IncludeHidden $IncludeHidden
+  if ($MaxScanLines -gt 0) {
+    $files = & rg @rgArgs | Select-Object -First $MaxScanLines
+  } else {
+    $files = & rg @rgArgs
+  }
   $matches = $files | & rg --smart-case --color=never -- $Query
   $matches | Set-Content -Encoding UTF8 $OutFile
 }
 
-function Add-HtmlHeader([System.Text.StringBuilder]$sb, [string]$Query, [string]$Profile) {
+function Add-HtmlHeader([System.Text.StringBuilder]$sb, [string]$Query, [string]$Profile, [string]$Note) {
   [void]$sb.AppendLine('<!doctype html>')
   [void]$sb.AppendLine('<html lang="en"><head>')
   [void]$sb.AppendLine('<meta charset="utf-8"/>')
@@ -105,6 +204,7 @@ function Add-HtmlHeader([System.Text.StringBuilder]$sb, [string]$Query, [string]
   [void]$sb.AppendLine('.file{background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;margin:0 0 14px;overflow:hidden;}')
   [void]$sb.AppendLine('.file-header{padding:10px 12px;border-bottom:1px solid var(--panel-border);color:var(--path);font-weight:700;}')
   [void]$sb.AppendLine('.row{display:grid;grid-template-columns:70px 70px 1fr;gap:8px;padding:6px 12px;align-items:start;}')
+  [void]$sb.AppendLine('.row .hitmeta{justify-self:end;color:#fcd34d;font-size:12px;}')
   [void]$sb.AppendLine('.row.match{background:rgba(125,211,252,0.08);} .row.context{background:rgba(148,163,184,0.06);}')
   [void]$sb.AppendLine('.line{color:var(--line);} .col{color:var(--col);} .text{white-space:pre-wrap;word-break:break-word;}')
   [void]$sb.AppendLine('.separator{border-top:1px dashed #334155;}')
@@ -115,6 +215,9 @@ function Add-HtmlHeader([System.Text.StringBuilder]$sb, [string]$Query, [string]
   [void]$sb.AppendLine("<body data-query=`"$(Escape-Html $Query)`">")
   [void]$sb.AppendLine('<h1>extended-grep</h1>')
   [void]$sb.AppendLine("<div class=`"meta`">profile: <strong>$(Escape-Html $Profile)</strong> | query: <strong>$(Escape-Html $Query)</strong></div>")
+  if (-not [string]::IsNullOrWhiteSpace($Note)) {
+    [void]$sb.AppendLine("<div class=`"meta`">note: <strong>$(Escape-Html $Note)</strong></div>")
+  }
 }
 
 function Add-HtmlFooter([System.Text.StringBuilder]$sb) {
@@ -153,80 +256,103 @@ function Add-HtmlFooter([System.Text.StringBuilder]$sb) {
   [void]$sb.AppendLine('</body></html>')
 }
 
-function Add-ContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
+function Add-ContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines, [string]$Query, [int]$MaxLineLength) {
   $normalizedLines = @($Lines)
   if ($normalizedLines.Count -eq 0) {
     [void]$sb.AppendLine('<div class="empty">No matches found.</div>')
     return
   }
 
-  $currentFile = ''
+  $hitsByFile = @{}
   foreach ($line in $normalizedLines) {
-    if ($line -eq '--') {
-      if (-not [string]::IsNullOrWhiteSpace($currentFile)) {
+    if ($line.Contains($FieldMatchSep)) {
+      $parts = $line.Split($FieldMatchSep, 3)
+      if ($parts.Count -ge 1) {
+        $fileKey = $parts[0]
+        if ($hitsByFile.ContainsKey($fileKey)) {
+          $hitsByFile[$fileKey] = $hitsByFile[$fileKey] + 1
+        } else {
+          $hitsByFile[$fileKey] = 1
+        }
+      }
+    }
+  }
+
+  $currentFile = ''
+  $currentFileHitIndex = 0
+  $currentFileHitTotal = 0
+  $currentFileIndex = 0
+  $totalFiles = $hitsByFile.Keys.Count
+  $skipContextAfterLastHit = $false
+  foreach ($line in $normalizedLines) {
+    if ($line -eq $ContextBlockSep) {
+      if (-not [string]::IsNullOrWhiteSpace($currentFile) -and -not $skipContextAfterLastHit) {
         [void]$sb.AppendLine('<div class="separator"></div>')
       }
       continue
     }
 
-    if ($line -match '^(.*):(\d+):(\d+):(.*)$') {
-      $filePath = $Matches[1]
-      $lineNo = $Matches[2]
-      $colNo = $Matches[3]
-      $text = $Matches[4]
+    if ($line.Contains($FieldMatchSep)) {
+      $parts = $line.Split($FieldMatchSep, 3)
+      if ($parts.Count -lt 3) { continue }
+      $filePath = $parts[0]
+      $lineNo = $parts[1]
+      $colNo = '-'
+      $text = $parts[2]
 
       if ($filePath -ne $currentFile) {
         if (-not [string]::IsNullOrWhiteSpace($currentFile)) {
           [void]$sb.AppendLine('</div>')
         }
         $currentFile = $filePath
+        $currentFileIndex = $currentFileIndex + 1
+        $currentFileHitIndex = 0
+        $currentFileHitTotal = if ($hitsByFile.ContainsKey($filePath)) { [int]$hitsByFile[$filePath] } else { 0 }
+        $skipContextAfterLastHit = $false
         [void]$sb.AppendLine('<div class="file">')
-        [void]$sb.AppendLine("<div class=`"file-header`">$(Escape-Html $filePath)</div>")
+        [void]$sb.AppendLine("<div class=`"file-header`">(file $currentFileIndex of $totalFiles) $(Escape-Html $filePath)</div>")
       }
 
-      [void]$sb.AppendLine("<div class=`"row match`"><span class=`"line`">$(Escape-Html $lineNo)</span><span class=`"col`">$(Escape-Html $colNo)</span><span class=`"text`">$(Escape-Html $text)</span></div>")
+      $currentFileHitIndex = $currentFileHitIndex + 1
+      $skipContextAfterLastHit = ($currentFileHitIndex -ge $currentFileHitTotal)
+      $displayText = Trim-TextForDisplay -Text $text -IsMatch $true -Query $Query -MaxLineLength $MaxLineLength
+      [void]$sb.AppendLine("<div class=`"row match`"><span class=`"line`">$(Escape-Html $lineNo)</span><span class=`"col`">$(Escape-Html $colNo)</span><span class=`"text`">$(Escape-Html $displayText)</span><span class=`"hitmeta`">hit $currentFileHitIndex of $currentFileHitTotal</span></div>")
       continue
     }
 
-    if ($line -match '^(.*)-(\d+)-(\d+)-(.*)$') {
-      $filePath = $Matches[1]
-      $lineNo = $Matches[2]
-      $colNo = $Matches[3]
-      $text = $Matches[4]
+    if ($line.Contains($FieldContextSep)) {
+      $parts = $line.Split($FieldContextSep, 3)
+      if ($parts.Count -lt 3) { continue }
+      $filePath = $parts[0]
+      $lineNo = $parts[1]
+      $colNo = '-'
+      $text = $parts[2]
 
       if ($filePath -ne $currentFile) {
         if (-not [string]::IsNullOrWhiteSpace($currentFile)) {
           [void]$sb.AppendLine('</div>')
         }
         $currentFile = $filePath
+        $currentFileIndex = $currentFileIndex + 1
+        $currentFileHitIndex = 0
+        $currentFileHitTotal = if ($hitsByFile.ContainsKey($filePath)) { [int]$hitsByFile[$filePath] } else { 0 }
+        $skipContextAfterLastHit = $false
         [void]$sb.AppendLine('<div class="file">')
-        [void]$sb.AppendLine("<div class=`"file-header`">$(Escape-Html $filePath)</div>")
+        [void]$sb.AppendLine("<div class=`"file-header`">(file $currentFileIndex of $totalFiles) $(Escape-Html $filePath)</div>")
       }
 
-      [void]$sb.AppendLine("<div class=`"row context`"><span class=`"line`">$(Escape-Html $lineNo)</span><span class=`"col`">$(Escape-Html $colNo)</span><span class=`"text`">$(Escape-Html $text)</span></div>")
+      if ($skipContextAfterLastHit) {
+        continue
+      }
+
+      $displayText = Trim-TextForDisplay -Text $text -IsMatch $false -Query $Query -MaxLineLength $MaxLineLength
+      [void]$sb.AppendLine("<div class=`"row context`"><span class=`"line`">$(Escape-Html $lineNo)</span><span class=`"col`">$(Escape-Html $colNo)</span><span class=`"text`">$(Escape-Html $displayText)</span><span class=`"hitmeta`"></span></div>")
       continue
     }
 
-    if ($line -match '^(.*)-(\d+)-(.*)$') {
-      $filePath = $Matches[1]
-      $lineNo = $Matches[2]
-      $text = $Matches[3]
-
-      if ($filePath -ne $currentFile) {
-        if (-not [string]::IsNullOrWhiteSpace($currentFile)) {
-          [void]$sb.AppendLine('</div>')
-        }
-        $currentFile = $filePath
-        [void]$sb.AppendLine('<div class="file">')
-        [void]$sb.AppendLine("<div class=`"file-header`">$(Escape-Html $filePath)</div>")
-      }
-
-      [void]$sb.AppendLine("<div class=`"row context`"><span class=`"line`">$(Escape-Html $lineNo)</span><span class=`"col`">-</span><span class=`"text`">$(Escape-Html $text)</span></div>")
-      continue
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($currentFile)) {
-      [void]$sb.AppendLine("<div class=`"row context`"><span class=`"line`">-</span><span class=`"col`">-</span><span class=`"text`">$(Escape-Html $line)</span></div>")
+    if (-not [string]::IsNullOrWhiteSpace($currentFile) -and -not $skipContextAfterLastHit) {
+      $displayText = Trim-TextForDisplay -Text $line -IsMatch $false -Query $Query -MaxLineLength $MaxLineLength
+      [void]$sb.AppendLine("<div class=`"row context`"><span class=`"line`">-</span><span class=`"col`">-</span><span class=`"text`">$(Escape-Html $displayText)</span><span class=`"hitmeta`"></span></div>")
     }
   }
 
@@ -252,19 +378,19 @@ function Add-FilenameResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
   [void]$sb.AppendLine('</div>')
 }
 
-function Render-Html([string]$InFile, [string]$OutFile, [string]$Query, [string]$Profile) {
+function Render-Html([string]$InFile, [string]$OutFile, [string]$Query, [string]$Profile, [string]$Note, [int]$MaxLineLength) {
   $lines = @()
   if (Test-Path $InFile) {
     $lines = @(Get-Content -Path $InFile)
   }
 
   $sb = [System.Text.StringBuilder]::new()
-  Add-HtmlHeader -sb $sb -Query $Query -Profile $Profile
+  Add-HtmlHeader -sb $sb -Query $Query -Profile $Profile -Note $Note
 
   if (Is-FilenameProfile $Profile) {
     Add-FilenameResults -sb $sb -Lines $lines
   } else {
-    Add-ContentResults -sb $sb -Lines $lines
+    Add-ContentResults -sb $sb -Lines $lines -Query $Query -MaxLineLength $MaxLineLength
   }
 
   Add-HtmlFooter -sb $sb
@@ -275,23 +401,92 @@ if (-not (Get-Command rg -ErrorAction SilentlyContinue)) {
   throw 'ripgrep (rg) is required but not installed.'
 }
 
-if ([string]::IsNullOrWhiteSpace($Arg1)) {
+$includeHidden = $false
+$contextLines = 3
+$maxPerFile = 200
+$maxFileSize = '1M'
+$maxScanLines = 20000
+$maxLineLength = 2000
+$maxRenderLines = 12000
+
+$positionals = New-Object System.Collections.Generic.List[string]
+$i = 0
+while ($i -lt $CliArgs.Count) {
+  $arg = $CliArgs[$i]
+  switch ($arg) {
+    '-h' { Show-Usage; exit 0 }
+    '--help' { Show-Usage; exit 0 }
+    '--deep' { $includeHidden = $true }
+    '--hidden' { $includeHidden = $true }
+    '--context' {
+      $i++
+      if ($i -ge $CliArgs.Count) { throw '--context requires a value' }
+      $contextLines = Parse-Int -Value $CliArgs[$i] -Name '--context'
+    }
+    '--max-per-file' {
+      $i++
+      if ($i -ge $CliArgs.Count) { throw '--max-per-file requires a value' }
+      $maxPerFile = Parse-Int -Value $CliArgs[$i] -Name '--max-per-file'
+    }
+    '--max-filesize' {
+      $i++
+      if ($i -ge $CliArgs.Count) { throw '--max-filesize requires a value' }
+      if ($CliArgs[$i] -eq "none") {
+        $maxFileSize = ""
+      } else {
+        $maxFileSize = $CliArgs[$i]
+      }
+    }
+    '--max-render-lines' {
+      $i++
+      if ($i -ge $CliArgs.Count) { throw '--max-render-lines requires a value' }
+      $maxRenderLines = Parse-Int -Value $CliArgs[$i] -Name '--max-render-lines'
+    }
+    '--max-line-length' {
+      $i++
+      if ($i -ge $CliArgs.Count) { throw '--max-line-length requires a value' }
+      $maxLineLength = Parse-Int -Value $CliArgs[$i] -Name '--max-line-length'
+    }
+    '--max-scan-lines' {
+      $i++
+      if ($i -ge $CliArgs.Count) { throw '--max-scan-lines requires a value' }
+      $maxScanLines = Parse-Int -Value $CliArgs[$i] -Name '--max-scan-lines'
+    }
+    '--' {
+      for ($j = $i + 1; $j -lt $CliArgs.Count; $j++) {
+        $positionals.Add($CliArgs[$j])
+      }
+      $i = $CliArgs.Count
+      continue
+    }
+    default {
+      if ($arg.StartsWith('-')) {
+        throw "Unknown option: $arg"
+      }
+      $positionals.Add($arg)
+    }
+  }
+  $i++
+}
+
+if ($positionals.Count -eq 0) {
+  Show-Usage
+  exit 0
+}
+
+$profile = 'grepx'
+$query = ''
+if ($positionals.Count -eq 1) {
+  $query = $positionals[0]
+} elseif ($positionals.Count -eq 2) {
+  $profile = $positionals[0]
+  $query = $positionals[1]
+} else {
   Show-Usage
   exit 1
 }
 
-$profile = 'grepx'
-$query = $Arg1
-if (-not [string]::IsNullOrWhiteSpace($Arg2)) {
-  $profile = $Arg1
-  $query = $Arg2
-}
-
-$resultsDir = if (-not [string]::IsNullOrWhiteSpace($env:SEARCH_RESULTS_DIR)) {
-  $env:SEARCH_RESULTS_DIR
-} else {
-  Join-Path $HOME 'search-results'
-}
+$resultsDir = if ([string]::IsNullOrWhiteSpace($env:SEARCH_RESULTS_DIR)) { Join-Path $HOME 'search-results' } else { $env:SEARCH_RESULTS_DIR }
 New-Item -Path $resultsDir -ItemType Directory -Force | Out-Null
 
 $safeQuery = Safe-Name $query
@@ -302,17 +497,48 @@ if ($profile -eq 'grepx') {
 }
 
 $tempFile = [System.IO.Path]::GetTempFileName()
+$tempRenderFile = [System.IO.Path]::GetTempFileName()
+
+$searchTimer = [System.Diagnostics.Stopwatch]::StartNew()
 try {
   if (Is-FilenameProfile $profile) {
-    Write-Host "Searching `"$query`" using filename profile `"$profile`"..."
-    Run-FilenameSearch -Profile $profile -Query $query -OutFile $tempFile
+    Write-Host "Searching \"$query\" using filename profile \"$profile\"..."
+    Run-FilenameSearch -Profile $profile -Query $query -OutFile $tempFile -IncludeHidden $includeHidden -MaxScanLines $maxScanLines
   } else {
-    Write-Host "Searching `"$query`" using content profile `"$profile`"..."
-    Run-ContentSearch -Profile $profile -Query $query -OutFile $tempFile
+    Write-Host "Searching \"$query\" using content profile \"$profile\"..."
+    Run-ContentSearch -Profile $profile -Query $query -OutFile $tempFile -IncludeHidden $includeHidden -ContextLines $contextLines -MaxPerFile $maxPerFile -MaxFileSize $maxFileSize -MaxScanLines $maxScanLines
+  }
+  $searchTimer.Stop()
+
+  $lines = @()
+  if (Test-Path $tempFile) {
+    $lines = @(Get-Content -Path $tempFile)
   }
 
-  Render-Html -InFile $tempFile -OutFile $outputFile -Query $query -Profile $profile
+  $note = ''
+  $originalLineCount = $lines.Count
+  if ($maxScanLines -gt 0 -and $lines.Count -ge $maxScanLines) {
+    $note = "search output reached max scan lines ($maxScanLines)"
+  }
+
+  if ($maxRenderLines -gt 0 -and $lines.Count -gt $maxRenderLines) {
+    $lines = $lines[0..($maxRenderLines - 1)]
+    if ([string]::IsNullOrWhiteSpace($note)) {
+      $note = "output truncated to $maxRenderLines lines (original: $originalLineCount)"
+    } else {
+      $note = "$note; output truncated to $maxRenderLines lines (original: $originalLineCount)"
+    }
+  }
+
+  $lines | Set-Content -Path $tempRenderFile -Encoding UTF8
+
+  $renderTimer = [System.Diagnostics.Stopwatch]::StartNew()
+  Render-Html -InFile $tempRenderFile -OutFile $outputFile -Query $query -Profile $profile -Note $note -MaxLineLength $maxLineLength
+  $renderTimer.Stop()
+
   Write-Host "Result saved to: $outputFile"
+  Write-Host "Timing: search=$([int]$searchTimer.Elapsed.TotalSeconds)s render=$([int]$renderTimer.Elapsed.TotalSeconds)s"
 } finally {
   Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+  Remove-Item -Path $tempRenderFile -ErrorAction SilentlyContinue
 }
