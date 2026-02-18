@@ -15,6 +15,20 @@ search "fox, "
 
 This creates an HTML report in `~/search-results`.
 
+## Visual Example
+
+Command usage:
+
+![Command usage](images/search-command.jpg)
+
+Search result for `search fox`:
+
+![Search result fox](images/search-results-1.jpg)
+
+Search result for `search "fox, "`:
+
+![Search result fox comma](images/search-results-2.jpg)
+
 ## Features
 
 - Recursive project search with profiles (`grepx`, `code`, `xml`, `filename`, etc.)
