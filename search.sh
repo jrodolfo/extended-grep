@@ -33,8 +33,8 @@ Environment:
 Examples:
   search fox
   search --deep fox
-  search --max-per-file 50 xml Transaction-ID
-  search filename p-dcs-flightsummary
+  search --max-per-file 50 xml a-string
+  search filename part-of-file-name
 USAGE
 }
 
