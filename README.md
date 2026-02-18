@@ -204,14 +204,22 @@ make run ARGS="fox"
 Windows note:
 
 - The `make` commands above require `make` to be installed.
-- Run the install commands from **PowerShell** (recommended), using `winget`.
-- Option 1 (standalone make):
+- Run the install commands from **PowerShell**.
+- Option 1 (Scoop, recommended):
+
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+irm get.scoop.sh | iex
+scoop install make
+```
+
+- Option 2 (winget standalone make):
 
 ```powershell
 winget install GnuWin32.Make
 ```
 
-- Option 2 (Git Bash, which also includes `make` in many setups):
+- Option 3 (Git Bash, which also includes `make` in many setups):
 
 ```powershell
 winget install Git.Git
