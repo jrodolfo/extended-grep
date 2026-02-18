@@ -232,3 +232,24 @@ winget install Git.Git
 - GitHub Actions runs smoke tests on every push and pull request:
   - macOS: `make test-mac`
   - Windows: `Invoke-Pester ./tests/smoke.tests.ps1`
+
+## Qodana Code Quality
+
+Qodana is JetBrains' static analysis tool. In this project, it helps detect code quality problems early (for example, script issues, suspicious patterns, and maintainability problems) before they reach production.
+
+Project files:
+
+- `qodana.yaml`: Qodana configuration (profile, linter image, analysis options)
+- `.github/workflows/qodana_code_quality.yml`: GitHub Actions workflow for automated Qodana scans
+- `how-do-i-run-qodana-on-this-project.md`: step-by-step local and CI usage notes
+
+Run locally:
+
+```bash
+qodana scan --show-report
+```
+
+Run in GitHub:
+
+- The Qodana workflow runs on push to `master`, on pull requests, and via manual trigger (`workflow_dispatch`).
+- To publish cloud/PR results, add `QODANA_TOKEN` in repository secrets.
