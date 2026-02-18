@@ -6,6 +6,29 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 TARGET_DIR="${HOME}/.local/bin"
 
 print_rg_install_hint() {
+  local os_id=""
+  if [ -r /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    os_id="${ID:-}"
+  fi
+
+  if [ "$os_id" = "amzn" ]; then
+    cat <<'EOF'
+ripgrep (rg) is required.
+Amazon Linux 2023 may not have ripgrep in the default enabled repos.
+Try one of these:
+  1) Build from Rust toolchain:
+     sudo dnf install -y cargo
+     cargo install ripgrep
+     export PATH="$HOME/.cargo/bin:$PATH"
+  2) Install ripgrep binary from GitHub releases:
+     https://github.com/BurntSushi/ripgrep/releases
+Note: on Amazon Linux, yum uses dnf under the hood, so yum vs dnf is usually not the root cause.
+EOF
+    return
+  fi
+
   if command -v dnf >/dev/null 2>&1; then
     echo "ripgrep (rg) is required. Install with: sudo dnf install -y ripgrep"
     return

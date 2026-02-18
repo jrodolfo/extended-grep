@@ -61,6 +61,19 @@ sudo dnf install -y ripgrep
 sudo apt-get update && sudo apt-get install -y ripgrep
 ```
 
+Amazon Linux 2023 note:
+
+- If `dnf install ripgrep` returns “No match for argument”, install via Rust toolchain:
+
+```bash
+sudo dnf install -y cargo
+cargo install ripgrep
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+- `yum` and `dnf` are equivalent on Amazon Linux 2023, so switching from one to the other usually does not change package availability.
+
 ## Install on macOS
 
 1. Clone this repository.
