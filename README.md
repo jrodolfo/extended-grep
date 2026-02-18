@@ -2,6 +2,19 @@
 
 `extended-grep` is a wrapper around `rg` (ripgrep) that saves search results as HTML files in `~/search-results`.
 
+## Why use extended-grep
+
+- Better handling for tricky search strings in day-to-day usage (for example: `search "fox, "`).
+- Search results are written to HTML reports, so your terminal stays clean even for large searches.
+
+Example:
+
+```bash
+search "fox, "
+```
+
+This creates an HTML report in `~/search-results`.
+
 ## Features
 
 - Recursive project search with profiles (`grepx`, `code`, `xml`, `filename`, etc.)
@@ -36,7 +49,7 @@ winget install BurntSushi.ripgrep.MSVC
 3. Open a new terminal and run:
 
 ```bash
-search additionalId
+search a-string
 ```
 
 ## Install on Windows (PowerShell)
@@ -57,7 +70,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 4. Open a new PowerShell window and run:
 
 ```powershell
-search additionalId
+search a-string
 ```
 
 ## Usage
@@ -92,11 +105,11 @@ Profiles:
 Examples:
 
 ```bash
-search additionalId
-search --deep additionalId
-search --max-per-file 50 additionalId
-search xml Transaction-ID
-search filename p-dcs-flightsummary
+search a-string
+search --deep a-string
+search --max-per-file 50 a-string
+search xml another-string
+search filename part-of-file-name
 ```
 
 Options:
