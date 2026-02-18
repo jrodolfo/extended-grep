@@ -9,6 +9,8 @@ if (-not (Get-Command rg -ErrorAction SilentlyContinue)) {
 }
 
 Copy-Item (Join-Path $repoDir 'search.ps1') (Join-Path $targetDir 'search.ps1') -Force
+New-Item -Path (Join-Path $targetDir 'config') -ItemType Directory -Force | Out-Null
+Copy-Item (Join-Path $repoDir 'config/search-profiles.conf') (Join-Path $targetDir 'config/search-profiles.conf') -Force
 
 $profilePath = $PROFILE
 $profileDir = Split-Path -Parent $profilePath

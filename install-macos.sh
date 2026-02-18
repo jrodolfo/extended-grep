@@ -18,6 +18,8 @@ fi
 mkdir -p "$TARGET_DIR"
 cp "$SCRIPT_DIR/search.sh" "$TARGET_DIR/search"
 cp "$SCRIPT_DIR/grepfunctions.sh" "$TARGET_DIR/grepfunctions.sh"
+mkdir -p "$TARGET_DIR/config"
+cp "$SCRIPT_DIR/config/search-profiles.conf" "$TARGET_DIR/config/search-profiles.conf"
 chmod +x "$TARGET_DIR/search"
 
 if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then

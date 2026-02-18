@@ -3,7 +3,21 @@
 set -euo pipefail
 VERSION="2.0.0"
 
-SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+resolve_script_dir() {
+  local src="${BASH_SOURCE[0]}"
+  while [ -L "$src" ]; do
+    local dir
+    dir=$(cd -- "$(dirname -- "$src")" && pwd)
+    src=$(readlink "$src")
+    case "$src" in
+      /*) ;;
+      *) src="$dir/$src" ;;
+    esac
+  done
+  cd -- "$(dirname -- "$src")" && pwd
+}
+
+SCRIPT_DIR=$(resolve_script_dir)
 SEARCH_CONFIG_FILE="${SEARCH_CONFIG_FILE:-$SCRIPT_DIR/config/search-profiles.conf}"
 # shellcheck source=./grepfunctions.sh
 source "$SCRIPT_DIR/grepfunctions.sh"
