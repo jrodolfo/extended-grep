@@ -35,7 +35,7 @@ Options:
   -h, --help                 Show this help message
   -v, --version              Show version and exit
   --profile-list             Print profiles and exit
-  --format FMT              Output format: html or txt (default: html)
+  --format FMT               Output format: html or txt (default: html)
   --open                     Open generated report after search
   --deep                     Include hidden files and directories
   --hidden                   Alias for --deep
