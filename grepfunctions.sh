@@ -503,3 +503,148 @@ render_html_report() {
     emit_html_footer
   } > "$outfile"
 }
+
+render_content_report_txt() {
+  local infile="$1"
+  local query="$2"
+
+  if [ ! -s "$infile" ]; then
+    printf 'No matches found.\n'
+    return
+  fi
+
+  local counts_file
+  counts_file=$(mktemp)
+  awk -v sep="$FIELD_MATCH_SEP" '
+    index($0, sep) {
+      split($0, f, sep);
+      c[f[1]]++;
+    }
+    END {
+      for (k in c) {
+        printf "%s\t%d\n", k, c[k];
+      }
+    }
+  ' "$infile" > "$counts_file"
+
+  local current_file=""
+  local current_file_total_hits=0
+  local current_file_hit_index=0
+  local current_file_index=0
+  local total_files
+  total_files=$(awk -F '\t' 'NF>=2{c++} END{print c+0}' "$counts_file")
+  local skip_context_after_last_hit=0
+  local line
+
+  while IFS= read -r line; do
+    if [ "$line" = "$CONTEXT_BLOCK_SEP" ]; then
+      if [ -n "$current_file" ] && [ "$skip_context_after_last_hit" -eq 0 ]; then
+        printf '  ---\n'
+      fi
+      continue
+    fi
+
+    if [[ "$line" == *"$FIELD_MATCH_SEP"* ]]; then
+      local file_path
+      local line_no
+      local col_no="-"
+      local text
+      IFS="$FIELD_MATCH_SEP" read -r file_path line_no text <<< "$line"
+
+      if [ "$file_path" != "$current_file" ]; then
+        current_file="$file_path"
+        current_file_index=$((current_file_index + 1))
+        current_file_total_hits=$(awk -F '\t' -v f="$file_path" '$1==f {print $2; exit}' "$counts_file")
+        current_file_hit_index=0
+        skip_context_after_last_hit=0
+        printf '\n(file %s of %s) %s\n' "$current_file_index" "$total_files" "$file_path"
+      fi
+
+      current_file_hit_index=$((current_file_hit_index + 1))
+      if [ "$current_file_hit_index" -eq "$current_file_total_hits" ]; then
+        skip_context_after_last_hit=1
+      else
+        skip_context_after_last_hit=0
+      fi
+      local display_text
+      display_text=$(trim_text_for_display "$text" 1 "$query")
+      printf '  %s | %s | %s (hit %s of %s)\n' \
+        "$line_no" "$col_no" "$display_text" "$current_file_hit_index" "$current_file_total_hits"
+      continue
+    fi
+
+    if [[ "$line" == *"$FIELD_CONTEXT_SEP"* ]]; then
+      local file_path
+      local line_no
+      local col_no="-"
+      local text
+      IFS="$FIELD_CONTEXT_SEP" read -r file_path line_no text <<< "$line"
+
+      if [ "$file_path" != "$current_file" ]; then
+        current_file="$file_path"
+        current_file_index=$((current_file_index + 1))
+        current_file_total_hits=$(awk -F '\t' -v f="$file_path" '$1==f {print $2; exit}' "$counts_file")
+        current_file_hit_index=0
+        skip_context_after_last_hit=0
+        printf '\n(file %s of %s) %s\n' "$current_file_index" "$total_files" "$file_path"
+      fi
+
+      if [ "$skip_context_after_last_hit" -eq 1 ]; then
+        continue
+      fi
+
+      local display_text
+      display_text=$(trim_text_for_display "$text" 0 "$query")
+      printf '  %s | %s | %s\n' "$line_no" "$col_no" "$display_text"
+      continue
+    fi
+
+    if [ -n "$current_file" ] && [ "$skip_context_after_last_hit" -eq 0 ]; then
+      local display_text
+      display_text=$(trim_text_for_display "$line" 0 "$query")
+      printf '  - | - | %s\n' "$display_text"
+    fi
+  done < "$infile"
+  rm -f "$counts_file"
+}
+
+render_filename_report_txt() {
+  local infile="$1"
+
+  if [ ! -s "$infile" ]; then
+    printf 'No files found.\n'
+    return
+  fi
+
+  local total_files
+  total_files=$(wc -l < "$infile" | awk '{print $1}')
+  local file_index=0
+  local line
+  while IFS= read -r line; do
+    file_index=$((file_index + 1))
+    printf '(file %s of %s) %s\n' "$file_index" "$total_files" "$line"
+  done < "$infile"
+}
+
+render_txt_report() {
+  local infile="$1"
+  local outfile="$2"
+  local query="$3"
+  local profile="$4"
+  local note="$5"
+
+  {
+    printf 'extended-grep\n'
+    printf 'profile: %s\n' "$profile"
+    printf 'query: %s\n' "$query"
+    if [ -n "$note" ]; then
+      printf 'note: %s\n' "$note"
+    fi
+    if profile_is_filename_search "$profile"; then
+      render_filename_report_txt "$infile"
+    else
+      render_content_report_txt "$infile" "$query"
+    fi
+    printf '\n'
+  } > "$outfile"
+}

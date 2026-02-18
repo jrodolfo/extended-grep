@@ -90,4 +90,26 @@ Describe 'search.ps1 smoke tests' {
     ($output -join "`n") | Should -Match 'grepx'
     ($output -join "`n") | Should -Match 'filename'
   }
+
+  It 'creates TXT output for content search' {
+    $query = 'extended-grep'
+    $outputFile = Join-Path $script:resultsDir "$query.grepx.txt"
+    Remove-OutputFile $outputFile
+    { & $script:searchScript '--format' 'txt' $query } | Should -Not -Throw
+
+    (Test-Path $outputFile) | Should -Be $true
+    $content = Get-Content -Path $outputFile -Raw
+    $content | Should -Match 'profile: grepx'
+    $content | Should -Match 'hit [0-9]+ of [0-9]+'
+  }
+
+  It 'creates TXT output for filename search' {
+    $query = 'search.ps1'
+    $outputFile = Join-Path $script:resultsDir "$query.filename.txt"
+    Remove-OutputFile $outputFile
+    { & $script:searchScript '--format' 'txt' 'filename' $query } | Should -Not -Throw
+
+    (Test-Path $outputFile) | Should -Be $true
+    (Get-Content -Path $outputFile -Raw) | Should -Match '\(file [0-9]+ of [0-9]+\)'
+  }
 }

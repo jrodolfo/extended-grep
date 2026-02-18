@@ -6,6 +6,7 @@
 
 - Better handling for tricky search strings in day-to-day usage (for example: `search "fox, "`).
 - Search results are written to HTML reports, so your terminal stays clean even for large searches.
+- Optional TXT reports (`--format txt`) are useful on terminal-only Linux servers.
 
 Example:
 
@@ -160,6 +161,7 @@ Examples:
 search a-string
 search --profile-list
 search --version
+search --format txt fox
 search --deep a-string
 search --max-per-file 50 a-string
 search xml another-string
@@ -170,16 +172,19 @@ Options:
 
 - `--version`: print version and exit
 - `--profile-list`: print available profiles and exit
-- `--open`: open the generated HTML report after search
+- `--format html|txt`: choose output format (default `html`)
+- `--open`: open the generated report after search
 - `--deep` or `--hidden`: include hidden files/directories (slower)
 - `--context N`: context lines before/after each hit (default `3`)
 - `--max-per-file N`: limit matches per file (default `200`, `0` disables limit)
 - `--max-filesize SIZE`: skip files larger than `SIZE` (default `1M`, use `none` to disable)
 - `--max-scan-lines N`: cap lines collected from `rg` before rendering (default `20000`, `0` disables cap)
 - `--max-line-length N`: trim very long result lines before rendering (default `2000`, `0` disables trimming)
-- `--max-render-lines N`: cap rendered HTML lines (default `12000`, `0` disables cap)
+- `--max-render-lines N`: cap rendered report lines (default `12000`, `0` disables cap)
 
-Each run creates an HTML file in `~/search-results`.
+Each run creates a report file in `~/search-results`:
+- default: `.html`
+- with `--format txt`: `.txt`
 
 Optional override:
 

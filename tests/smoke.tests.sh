@@ -96,7 +96,32 @@ assert_file_contains "$out" 'No files found.'
 
 echo "[ok] no-filename match case handled"
 
-# 5) profile list
+# 5) txt output (content profile)
+query='extended-grep'
+out="$RESULTS_DIR/${query}.grepx.txt"
+rm -f "$out"
+run_search --format txt "$query" >/dev/null
+assert_file_exists "$out"
+assert_file_contains "$out" 'extended-grep'
+assert_file_contains "$out" 'profile: grepx'
+assert_file_contains "$out" '\(hit [0-9]+ of [0-9]+\)'
+
+echo "[ok] txt content output handled"
+
+# 6) txt output (filename profile)
+query='search.ps1'
+out="$RESULTS_DIR/${query}.filename.txt"
+rm -f "$out"
+run_search --format txt filename "$query" >/dev/null
+assert_file_exists "$out"
+if ! rg -q '\(file [0-9]+ of [0-9]+\)' "$out"; then
+  echo "Assertion failed: expected file counters in txt filename output." >&2
+  exit 1
+fi
+
+echo "[ok] txt filename output handled"
+
+# 7) profile list
 profiles_output=$(bash "$SEARCH_SCRIPT" --profile-list)
 if ! printf '%s\n' "$profiles_output" | rg -q '^grepx$'; then
   echo "Assertion failed: expected grepx in --profile-list output." >&2
@@ -109,7 +134,7 @@ fi
 
 echo "[ok] profile-list output handled"
 
-# 6) deterministic fixture rendering checks
+# 8) deterministic fixture rendering checks
 query='fox'
 out="$RESULTS_DIR/${query}.grepx.html"
 rm -f "$out"

@@ -35,7 +35,8 @@ Options:
   -h, --help                 Show this help message
   -v, --version              Show version and exit
   --profile-list             Print profiles and exit
-  --open                     Open generated HTML report after search
+  --format FMT              Output format: html or txt (default: html)
+  --open                     Open generated report after search
   --deep                     Include hidden files and directories
   --hidden                   Alias for --deep
   --context N                Context lines before/after each hit (default: 3)
@@ -43,7 +44,7 @@ Options:
   --max-filesize SIZE        Skip files larger than SIZE (default: 1M, use 'none' for unlimited)
   --max-scan-lines N         Cap lines collected from rg before rendering (default: 20000, 0 = unlimited)
   --max-line-length N        Trim very long result lines before rendering (default: 2000, 0 = unlimited)
-  --max-render-lines N       Cap rendered lines in HTML (default: 12000, 0 = unlimited)
+  --max-render-lines N       Cap rendered lines in report (default: 12000, 0 = unlimited)
 
 Environment:
   SEARCH_RESULTS_DIR         Output directory (default: ~/search-results)
@@ -90,6 +91,7 @@ SEARCH_MAX_SCAN_LINES="$(config_default_value max_scan_lines)"
 SEARCH_MAX_LINE_LENGTH="$(config_default_value max_line_length)"
 SEARCH_MAX_RENDER_LINES="$(config_default_value max_render_lines)"
 SEARCH_OPEN=0
+SEARCH_FORMAT="html"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -108,6 +110,17 @@ while [ "$#" -gt 0 ]; do
     --open)
       SEARCH_OPEN=1
       shift
+      ;;
+    --format)
+      require_option_value "$1" "${2:-}"
+      case "$2" in
+        html|txt) SEARCH_FORMAT="$2" ;;
+        *)
+          echo "Error: --format expects 'html' or 'txt'." >&2
+          exit 1
+          ;;
+      esac
+      shift 2
       ;;
     --deep|--hidden)
       SEARCH_INCLUDE_HIDDEN=1
@@ -203,9 +216,9 @@ mkdir -p "$results_dir"
 
 safe_query=$(safe_filename "$query")
 if [ "$profile" = "grepx" ]; then
-  output_file="$results_dir/${safe_query}.grepx.html"
+  output_file="$results_dir/${safe_query}.grepx.${SEARCH_FORMAT}"
 else
-  output_file="$results_dir/${safe_query}.${profile}.html"
+  output_file="$results_dir/${safe_query}.${profile}.${SEARCH_FORMAT}"
 fi
 
 tmp_output=$(mktemp)
@@ -270,7 +283,11 @@ else
 fi
 
 render_started=$(date +%s)
-render_html_report "$tmp_render" "$output_file" "$query" "$profile" "$note"
+if [ "$SEARCH_FORMAT" = "txt" ]; then
+  render_txt_report "$tmp_render" "$output_file" "$query" "$profile" "$note"
+else
+  render_html_report "$tmp_render" "$output_file" "$query" "$profile" "$note"
+fi
 render_ended=$(date +%s)
 
 echo "Result saved to: $output_file"

@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file.
 - Shared profile/default configuration in `config/search-profiles.conf` used by both shell and PowerShell implementations.
 - `--profile-list` option in `search.sh` and `search.ps1`.
 - `--version` and `--open` options in `search.sh` and `search.ps1`.
+- `--format html|txt` option in `search.sh` and `search.ps1` (default remains HTML).
 - Linux installer script `install-linux.sh`.
 - Linux smoke test entrypoint `tests/smoke.tests.linux.sh`.
 - `Makefile` targets for `help`, `test-mac`, `test-ps`, `test`, and `run`.

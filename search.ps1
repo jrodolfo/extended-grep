@@ -26,7 +26,8 @@ Options:
   -h, --help                 Show this help message
   -v, --version              Show version and exit
   --profile-list             Print profiles and exit
-  --open                     Open generated HTML report after search
+  --format FMT               Output format: html or txt (default: html)
+  --open                     Open generated report after search
   --deep                     Include hidden files and directories
   --hidden                   Alias for --deep
   --context N                Context lines before/after each hit (default: 3)
@@ -34,7 +35,7 @@ Options:
   --max-filesize SIZE        Skip files larger than SIZE (default: 1M, use 'none' for unlimited)
   --max-scan-lines N         Cap lines collected from rg before rendering (default: 20000, 0 = unlimited)
   --max-line-length N        Trim very long result lines before rendering (default: 2000, 0 = unlimited)
-  --max-render-lines N       Cap rendered lines in HTML (default: 12000, 0 = unlimited)
+  --max-render-lines N       Cap rendered lines in report (default: 12000, 0 = unlimited)
 
 Environment:
   SEARCH_RESULTS_DIR         Output directory (default: ~/search-results)
@@ -420,6 +421,144 @@ function Render-Html([string]$InFile, [string]$OutFile, [string]$Query, [string]
   $sb.ToString() | Set-Content -Path $OutFile -Encoding UTF8
 }
 
+function Add-TxtHeader([System.Text.StringBuilder]$sb, [string]$Query, [string]$Profile, [string]$Note) {
+  [void]$sb.AppendLine('extended-grep')
+  [void]$sb.AppendLine("profile: $Profile")
+  [void]$sb.AppendLine("query: $Query")
+  if (-not [string]::IsNullOrWhiteSpace($Note)) {
+    [void]$sb.AppendLine("note: $Note")
+  }
+}
+
+function Add-TxtContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines, [string]$Query, [int]$MaxLineLength) {
+  $normalizedLines = @($Lines)
+  if ($normalizedLines.Count -eq 0) {
+    [void]$sb.AppendLine('No matches found.')
+    return
+  }
+
+  $hitsByFile = @{}
+  foreach ($line in $normalizedLines) {
+    if ($line.Contains($FieldMatchSep)) {
+      $parts = $line.Split($FieldMatchSep, 3)
+      if ($parts.Count -ge 1) {
+        $fileKey = $parts[0]
+        if ($hitsByFile.ContainsKey($fileKey)) {
+          $hitsByFile[$fileKey] = $hitsByFile[$fileKey] + 1
+        } else {
+          $hitsByFile[$fileKey] = 1
+        }
+      }
+    }
+  }
+
+  $currentFile = ''
+  $currentFileHitIndex = 0
+  $currentFileHitTotal = 0
+  $currentFileIndex = 0
+  $totalFiles = $hitsByFile.Keys.Count
+  $skipContextAfterLastHit = $false
+  foreach ($line in $normalizedLines) {
+    if ($line -eq $ContextBlockSep) {
+      if (-not [string]::IsNullOrWhiteSpace($currentFile) -and -not $skipContextAfterLastHit) {
+        [void]$sb.AppendLine('  ---')
+      }
+      continue
+    }
+
+    if ($line.Contains($FieldMatchSep)) {
+      $parts = $line.Split($FieldMatchSep, 3)
+      if ($parts.Count -lt 3) { continue }
+      $filePath = $parts[0]
+      $lineNo = $parts[1]
+      $colNo = '-'
+      $text = $parts[2]
+
+      if ($filePath -ne $currentFile) {
+        $currentFile = $filePath
+        $currentFileIndex = $currentFileIndex + 1
+        $currentFileHitIndex = 0
+        $currentFileHitTotal = if ($hitsByFile.ContainsKey($filePath)) { [int]$hitsByFile[$filePath] } else { 0 }
+        $skipContextAfterLastHit = $false
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine("(file $currentFileIndex of $totalFiles) $filePath")
+      }
+
+      $currentFileHitIndex = $currentFileHitIndex + 1
+      $skipContextAfterLastHit = ($currentFileHitIndex -ge $currentFileHitTotal)
+      $displayText = Trim-TextForDisplay -Text $text -IsMatch $true -Query $Query -MaxLineLength $MaxLineLength
+      [void]$sb.AppendLine("  $lineNo | $colNo | $displayText (hit $currentFileHitIndex of $currentFileHitTotal)")
+      continue
+    }
+
+    if ($line.Contains($FieldContextSep)) {
+      $parts = $line.Split($FieldContextSep, 3)
+      if ($parts.Count -lt 3) { continue }
+      $filePath = $parts[0]
+      $lineNo = $parts[1]
+      $colNo = '-'
+      $text = $parts[2]
+
+      if ($filePath -ne $currentFile) {
+        $currentFile = $filePath
+        $currentFileIndex = $currentFileIndex + 1
+        $currentFileHitIndex = 0
+        $currentFileHitTotal = if ($hitsByFile.ContainsKey($filePath)) { [int]$hitsByFile[$filePath] } else { 0 }
+        $skipContextAfterLastHit = $false
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine("(file $currentFileIndex of $totalFiles) $filePath")
+      }
+
+      if ($skipContextAfterLastHit) {
+        continue
+      }
+
+      $displayText = Trim-TextForDisplay -Text $text -IsMatch $false -Query $Query -MaxLineLength $MaxLineLength
+      [void]$sb.AppendLine("  $lineNo | $colNo | $displayText")
+      continue
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($currentFile) -and -not $skipContextAfterLastHit) {
+      $displayText = Trim-TextForDisplay -Text $line -IsMatch $false -Query $Query -MaxLineLength $MaxLineLength
+      [void]$sb.AppendLine("  - | - | $displayText")
+    }
+  }
+}
+
+function Add-TxtFilenameResults([System.Text.StringBuilder]$sb, [string[]]$Lines) {
+  $normalizedLines = @($Lines)
+  if ($normalizedLines.Count -eq 0) {
+    [void]$sb.AppendLine('No files found.')
+    return
+  }
+
+  $totalFiles = $normalizedLines.Count
+  $idx = 0
+  foreach ($line in $normalizedLines) {
+    $idx = $idx + 1
+    [void]$sb.AppendLine("(file $idx of $totalFiles) $line")
+  }
+}
+
+function Render-Txt([string]$InFile, [string]$OutFile, [string]$Query, [string]$Profile, [string]$Note, [int]$MaxLineLength) {
+  $lines = @()
+  if (Test-Path $InFile) {
+    $lines = @(Get-Content -Path $InFile)
+  }
+
+  $sb = [System.Text.StringBuilder]::new()
+  Add-TxtHeader -sb $sb -Query $Query -Profile $Profile -Note $Note
+
+  if (Is-FilenameProfile $Profile) {
+    Add-TxtFilenameResults -sb $sb -Lines $lines
+  } else {
+    Add-TxtContentResults -sb $sb -Lines $lines -Query $Query -MaxLineLength $MaxLineLength
+  }
+
+  [void]$sb.AppendLine('')
+  $sb.ToString() | Set-Content -Path $OutFile -Encoding UTF8
+}
+
 if (-not (Get-Command rg -ErrorAction SilentlyContinue)) {
   throw 'ripgrep (rg) is required but not installed.'
 }
@@ -440,6 +579,7 @@ $maxScanLines = Parse-Int -Value (Get-ConfigValue -Config $script:Config -Key 'd
 $maxLineLength = Parse-Int -Value (Get-ConfigValue -Config $script:Config -Key 'defaults.max_line_length') -Name 'defaults.max_line_length'
 $maxRenderLines = Parse-Int -Value (Get-ConfigValue -Config $script:Config -Key 'defaults.max_render_lines') -Name 'defaults.max_render_lines'
 $openAfter = $false
+$outputFormat = 'html'
 
 $positionals = New-Object System.Collections.Generic.List[string]
 $i = 0
@@ -452,6 +592,15 @@ while ($i -lt $CliArgs.Count) {
     '--version' { Write-Output "extended-grep $Version"; exit 0 }
     '--profile-list' { $script:Profiles | ForEach-Object { Write-Output $_ }; exit 0 }
     '--open' { $openAfter = $true }
+    '--format' {
+      $i++
+      if ($i -ge $CliArgs.Count) { throw '--format requires a value' }
+      $fmt = $CliArgs[$i].ToLowerInvariant()
+      if ($fmt -ne 'html' -and $fmt -ne 'txt') {
+        throw "--format expects 'html' or 'txt'"
+      }
+      $outputFormat = $fmt
+    }
     '--deep' { $includeHidden = $true }
     '--hidden' { $includeHidden = $true }
     '--context' {
@@ -528,9 +677,9 @@ New-Item -Path $resultsDir -ItemType Directory -Force | Out-Null
 
 $safeQuery = Safe-Name $query
 if ($profile -eq 'grepx') {
-  $outputFile = Join-Path $resultsDir "$safeQuery.grepx.html"
+  $outputFile = Join-Path $resultsDir "$safeQuery.grepx.$outputFormat"
 } else {
-  $outputFile = Join-Path $resultsDir "$safeQuery.$profile.html"
+  $outputFile = Join-Path $resultsDir "$safeQuery.$profile.$outputFormat"
 }
 
 $tempFile = [System.IO.Path]::GetTempFileName()
@@ -570,7 +719,11 @@ try {
   $lines | Set-Content -Path $tempRenderFile -Encoding UTF8
 
   $renderTimer = [System.Diagnostics.Stopwatch]::StartNew()
-  Render-Html -InFile $tempRenderFile -OutFile $outputFile -Query $query -Profile $profile -Note $note -MaxLineLength $maxLineLength
+  if ($outputFormat -eq 'txt') {
+    Render-Txt -InFile $tempRenderFile -OutFile $outputFile -Query $query -Profile $profile -Note $note -MaxLineLength $maxLineLength
+  } else {
+    Render-Html -InFile $tempRenderFile -OutFile $outputFile -Query $query -Profile $profile -Note $note -MaxLineLength $maxLineLength
+  }
   $renderTimer.Stop()
 
   Write-Host "Result saved to: $outputFile"
