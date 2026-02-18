@@ -5,6 +5,7 @@ Describe 'search.ps1 smoke tests' {
   BeforeAll {
     $script:repoRoot = Split-Path -Parent $PSScriptRoot
     $script:searchScript = Join-Path $script:repoRoot 'search.ps1'
+    $script:configFile = Join-Path $script:repoRoot 'config/search-profiles.conf'
     $script:testRoot = Join-Path $script:repoRoot '.tmp-test-home'
     $script:resultsDir = Join-Path $script:testRoot 'search-results'
     $script:originalResultsDir = $env:SEARCH_RESULTS_DIR
@@ -15,6 +16,9 @@ Describe 'search.ps1 smoke tests' {
 
     if (-not (Test-Path $script:searchScript)) {
       throw "search.ps1 not found at $script:searchScript"
+    }
+    if (-not (Test-Path $script:configFile)) {
+      throw "search config not found at $script:configFile"
     }
 
     if (Test-Path $script:testRoot) {
@@ -79,5 +83,11 @@ Describe 'search.ps1 smoke tests' {
     $outputFile = Join-Path $script:resultsDir "$query.filename.html"
     (Test-Path $outputFile) | Should -Be $true
     (Get-Content -Path $outputFile -Raw) | Should -Match 'No files found.'
+  }
+
+  It 'prints profile list from shared config' {
+    $output = & $script:searchScript '--profile-list'
+    ($output -join "`n") | Should -Match 'grepx'
+    ($output -join "`n") | Should -Match 'filename'
   }
 }

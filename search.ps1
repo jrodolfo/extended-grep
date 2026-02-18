@@ -9,6 +9,7 @@ $Version = '2.0.0'
 $FieldMatchSep = [string][char]31
 $FieldContextSep = [string][char]30
 $ContextBlockSep = [string][char]29
+$SearchConfigFile = if ($env:SEARCH_CONFIG_FILE) { $env:SEARCH_CONFIG_FILE } else { Join-Path $PSScriptRoot 'config/search-profiles.conf' }
 
 function Show-Usage {
   @"
@@ -19,12 +20,12 @@ Usage:
   search [OPTIONS] PROFILE STRING
 
 Profiles:
-  grepx (default), codescan, android, code, web, java, java_filename,
-  javascript, xhtml, css, sql, xml, docs, filename, x_filename, jar
+  $($script:Profiles -join ', ')
 
 Options:
   -h, --help                 Show this help message
   -v, --version              Show version and exit
+  --profile-list             Print profiles and exit
   --open                     Open generated HTML report after search
   --deep                     Include hidden files and directories
   --hidden                   Alias for --deep
@@ -82,19 +83,46 @@ function Safe-Name([string]$Text) {
   return $v
 }
 
+function Read-ConfigMap([string]$Path) {
+  if (-not (Test-Path $Path)) {
+    throw "Config file not found: $Path"
+  }
+  $map = @{}
+  foreach ($line in Get-Content -Path $Path) {
+    $trimmed = $line.Trim()
+    if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith('#')) {
+      continue
+    }
+    $eq = $trimmed.IndexOf('=')
+    if ($eq -lt 0) { continue }
+    $key = $trimmed.Substring(0, $eq).Trim()
+    $value = $trimmed.Substring($eq + 1)
+    $map[$key] = $value
+  }
+  return $map
+}
+
+function Get-ConfigValue([hashtable]$Config, [string]$Key) {
+  if (-not $Config.ContainsKey($Key)) {
+    throw "Missing config key: $Key"
+  }
+  return [string]$Config[$Key]
+}
+
+function Get-ConfigList([hashtable]$Config, [string]$Key) {
+  $raw = Get-ConfigValue -Config $Config -Key $Key
+  if ([string]::IsNullOrWhiteSpace($raw)) {
+    return @()
+  }
+  return @($raw.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
 function Get-CommonExcludeGlobs {
-  return @(
-    '--glob=!**/.git/**', '--glob=!**/.idea/**', '--glob=!**/.metadata/**', '--glob=!**/.jazz5/**',
-    '--glob=!**/.jazzShed/**', '--glob=!**/.mule/**', '--glob=!**/target/**', '--glob=!**/bin/**',
-    '--glob=!**/*Documentation*/**', '--glob=!**/RoboHelp*/**', '--glob=!**/.gradle/**',
-    '--glob=!**/gradle/**', '--glob=!**/build/**', '--glob=!**/node_modules/**', '--glob=!**/.next/**',
-    '--glob=!**/.cache/**', '--glob=!**/dist/**', '--glob=!**/out/**', '--glob=!**/coverage/**',
-    '--glob=!**/.venv/**', '--glob=!**/venv/**', '--glob=!**/tmp/**', '--glob=!**/logs/**'
-  )
+  return @($script:CommonExcludeGlobs | ForEach-Object { "--glob=$_" })
 }
 
 function Is-FilenameProfile([string]$Profile) {
-  return @('filename','docs','jar','java_filename','x_filename') -contains $Profile
+  return $script:FilenameProfiles -contains $Profile
 }
 
 function Parse-Int([string]$Value, [string]$Name) {
@@ -126,20 +154,12 @@ function Get-ContentArgs(
 
   $args += Get-CommonExcludeGlobs
 
-  switch ($Profile) {
-    'grepx' { $args += @('--glob=!**/*.jar','--glob=!**/*.class','--glob=!**/*.zip','--glob=!**/*.png','--glob=!**/*.jpg','--glob=!**/*.gif','--glob=!**/*.pdf','--glob=!**/*.mp4','--glob=!**/*.exe','--glob=!**/*.msi','--glob=!**/*.7z') }
-    'codescan' { $args += @('--glob=!**/*.jar','--glob=!**/*.class','--glob=!**/*.zip','--glob=!**/*.png','--glob=!**/*.jpg','--glob=!**/*.gif','--glob=!**/*.pdf','--glob=!**/*.mp4','--glob=!**/*.exe','--glob=!**/*.msi','--glob=!**/*.7z') }
-    'android' { $args += @('--glob=!**/*.jar','--glob=!**/*.class','--glob=!**/*.zip','--glob=!**/*.apk','--glob=!**/*.iml','--glob=!**/gradlew','--glob=!**/*.png','--glob=!**/*.jpg','--glob=!**/*.gif','--glob=!**/*.pdf','--glob=!**/*.mp4','--glob=!**/*.exe','--glob=!**/*.msi','--glob=!**/*.7z') }
-    'code' { $args += @('--glob=**/*.java','--glob=**/*.js','--glob=**/*.ts','--glob=**/*.tsx','--glob=**/*.jsx','--glob=**/*.kt','--glob=**/*.kts','--glob=**/*.xml','--glob=**/*.yml','--glob=**/*.yaml','--glob=**/*.properties','--glob=**/*.sh','--glob=**/*.bat','--glob=**/*.cmd','--glob=**/*.ps1') }
-    'web' { $args += @('--glob=**/*.html','--glob=**/*.htm','--glob=**/*.xhtml','--glob=**/*.css','--glob=**/*.js','--glob=**/*.ts','--glob=**/*.jsx','--glob=**/*.tsx') }
-    'java' { $args += @('--glob=**/*.java') }
-    'javascript' { $args += @('--glob=**/*.js','--glob=**/*.ts','--glob=**/*.jsx','--glob=**/*.tsx') }
-    'xhtml' { $args += @('--glob=**/*.xhtml','--glob=**/*.html','--glob=**/*.htm') }
-    'css' { $args += @('--glob=**/*.css') }
-    'sql' { $args += @('--glob=**/*.sql') }
-    'xml' { $args += @('--glob=**/*.xml') }
-    default { throw "Unknown profile: $Profile" }
+  $key = "profile.$Profile.content_globs"
+  if (-not $script:Config.ContainsKey($key)) {
+    throw "Unknown profile: $Profile"
   }
+  $profileGlobs = Get-ConfigList -Config $script:Config -Key $key
+  $args += @($profileGlobs | ForEach-Object { "--glob=$_" })
 
   return $args
 }
@@ -151,13 +171,13 @@ function Get-FilenameArgs([string]$Profile, [bool]$IncludeHidden) {
   }
   $args += Get-CommonExcludeGlobs
 
-  switch ($Profile) {
-    'filename' { }
-    'x_filename' { }
-    'java_filename' { $args += @('--glob=**/*.java') }
-    'jar' { $args += @('--glob=**/*.jar') }
-    'docs' { $args += @('--glob=**/*.doc','--glob=**/*.docx','--glob=**/*.pdf','--glob=**/*.ppt','--glob=**/*.pptx','--glob=**/*.xls','--glob=**/*.xlsx') }
-    default { throw "Unknown profile: $Profile" }
+  if (-not (Is-FilenameProfile $Profile)) {
+    throw "Unknown profile: $Profile"
+  }
+  $key = "profile.$Profile.file_globs"
+  if ($script:Config.ContainsKey($key)) {
+    $profileGlobs = Get-ConfigList -Config $script:Config -Key $key
+    $args += @($profileGlobs | ForEach-Object { "--glob=$_" })
   }
 
   return $args
@@ -404,13 +424,21 @@ if (-not (Get-Command rg -ErrorAction SilentlyContinue)) {
   throw 'ripgrep (rg) is required but not installed.'
 }
 
+$script:Config = Read-ConfigMap -Path $SearchConfigFile
+$script:Profiles = Get-ConfigList -Config $script:Config -Key 'profiles.order'
+$script:FilenameProfiles = Get-ConfigList -Config $script:Config -Key 'profiles.filename'
+$script:CommonExcludeGlobs = Get-ConfigList -Config $script:Config -Key 'common.exclude_globs'
+if ($script:Profiles.Count -eq 0) {
+  throw 'profiles.order is empty in config.'
+}
+
 $includeHidden = $false
-$contextLines = 3
-$maxPerFile = 200
-$maxFileSize = '1M'
-$maxScanLines = 20000
-$maxLineLength = 2000
-$maxRenderLines = 12000
+$contextLines = Parse-Int -Value (Get-ConfigValue -Config $script:Config -Key 'defaults.context_lines') -Name 'defaults.context_lines'
+$maxPerFile = Parse-Int -Value (Get-ConfigValue -Config $script:Config -Key 'defaults.max_per_file') -Name 'defaults.max_per_file'
+$maxFileSize = Get-ConfigValue -Config $script:Config -Key 'defaults.max_filesize'
+$maxScanLines = Parse-Int -Value (Get-ConfigValue -Config $script:Config -Key 'defaults.max_scan_lines') -Name 'defaults.max_scan_lines'
+$maxLineLength = Parse-Int -Value (Get-ConfigValue -Config $script:Config -Key 'defaults.max_line_length') -Name 'defaults.max_line_length'
+$maxRenderLines = Parse-Int -Value (Get-ConfigValue -Config $script:Config -Key 'defaults.max_render_lines') -Name 'defaults.max_render_lines'
 $openAfter = $false
 
 $positionals = New-Object System.Collections.Generic.List[string]
@@ -422,6 +450,7 @@ while ($i -lt $CliArgs.Count) {
     '--help' { Show-Usage; exit 0 }
     '-v' { Write-Output "extended-grep $Version"; exit 0 }
     '--version' { Write-Output "extended-grep $Version"; exit 0 }
+    '--profile-list' { $script:Profiles | ForEach-Object { Write-Output $_ }; exit 0 }
     '--open' { $openAfter = $true }
     '--deep' { $includeHidden = $true }
     '--hidden' { $includeHidden = $true }
@@ -484,6 +513,7 @@ if ($positionals.Count -eq 0) {
 $profile = 'grepx'
 $query = ''
 if ($positionals.Count -eq 1) {
+  $profile = $script:Profiles[0]
   $query = $positionals[0]
 } elseif ($positionals.Count -eq 2) {
   $profile = $positionals[0]

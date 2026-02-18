@@ -16,6 +16,11 @@ if [ ! -f "$SEARCH_SCRIPT" ]; then
   exit 1
 fi
 
+if [ ! -f "$REPO_ROOT/config/search-profiles.conf" ]; then
+  echo "Error: missing shared config at $REPO_ROOT/config/search-profiles.conf" >&2
+  exit 1
+fi
+
 TEST_ROOT=$(mktemp -d)
 RESULTS_DIR="$TEST_ROOT/search-results"
 mkdir -p "$RESULTS_DIR"
@@ -91,7 +96,20 @@ assert_file_contains "$out" 'No files found.'
 
 echo "[ok] no-filename match case handled"
 
-# 5) deterministic fixture rendering checks
+# 5) profile list
+profiles_output=$(bash "$SEARCH_SCRIPT" --profile-list)
+if ! printf '%s\n' "$profiles_output" | rg -q '^grepx$'; then
+  echo "Assertion failed: expected grepx in --profile-list output." >&2
+  exit 1
+fi
+if ! printf '%s\n' "$profiles_output" | rg -q '^filename$'; then
+  echo "Assertion failed: expected filename in --profile-list output." >&2
+  exit 1
+fi
+
+echo "[ok] profile-list output handled"
+
+# 6) deterministic fixture rendering checks
 query='fox'
 out="$RESULTS_DIR/${query}.grepx.html"
 rm -f "$out"

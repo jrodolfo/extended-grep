@@ -4,32 +4,26 @@
 
 set -o pipefail
 
-# Directories we skip across all profiles.
-COMMON_EXCLUDE_GLOBS=(
-  "!**/.git/**"
-  "!**/.idea/**"
-  "!**/.metadata/**"
-  "!**/.jazz5/**"
-  "!**/.jazzShed/**"
-  "!**/.mule/**"
-  "!**/target/**"
-  "!**/bin/**"
-  "!**/*Documentation*/**"
-  "!**/RoboHelp*/**"
-  "!**/.gradle/**"
-  "!**/gradle/**"
-  "!**/build/**"
-  "!**/node_modules/**"
-  "!**/.next/**"
-  "!**/.cache/**"
-  "!**/dist/**"
-  "!**/out/**"
-  "!**/coverage/**"
-  "!**/.venv/**"
-  "!**/venv/**"
-  "!**/tmp/**"
-  "!**/logs/**"
-)
+_grepf_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+SEARCH_CONFIG_FILE="${SEARCH_CONFIG_FILE:-$_grepf_dir/config/search-profiles.conf}"
+
+config_has_key() {
+  local key="$1"
+  awk -F '=' -v k="$key" 'BEGIN { found=0 } $0 !~ /^#/ && $1==k { found=1 } END { exit(found?0:1) }' "$SEARCH_CONFIG_FILE"
+}
+
+config_get_value() {
+  local key="$1"
+  awk -F '=' -v k="$key" '$0 !~ /^#/ && $1==k { print substr($0, index($0, "=")+1); exit }' "$SEARCH_CONFIG_FILE"
+}
+
+csv_each() {
+  local csv="$1"
+  if [ -z "$csv" ]; then
+    return
+  fi
+  awk -v s="$csv" 'BEGIN { n=split(s,a,","); for (i=1;i<=n;i++) if (length(a[i])) print a[i]; }'
+}
 
 # Use unambiguous separators so parsing never breaks on '-' or ':' in file names/content.
 FIELD_MATCH_SEP=$'\x1f'
@@ -88,17 +82,131 @@ safe_filename() {
 }
 
 append_common_globs() {
+  local globs
   local g
-  for g in "${COMMON_EXCLUDE_GLOBS[@]}"; do
+  globs=$(config_get_value "common.exclude_globs")
+  while IFS= read -r g; do
     RG_WORK_ARGS+=("--glob=$g")
-  done
+  done < <(csv_each "$globs")
+}
+
+profile_list_print() {
+  csv_each "$(config_get_value "profiles.order")"
+}
+
+profile_list_contains() {
+  local key="$1"
+  local profile="$2"
+  local p
+  while IFS= read -r p; do
+    if [ "$p" = "$profile" ]; then
+      return 0
+    fi
+  done < <(csv_each "$(config_get_value "$key")")
+  return 1
+}
+
+append_profile_globs() {
+  local key="$1"
+  local globs
+  local g
+  globs=$(config_get_value "$key")
+  while IFS= read -r g; do
+    RG_WORK_ARGS+=("--glob=$g")
+  done < <(csv_each "$globs")
+}
+
+config_default_value() {
+  local key="$1"
+  config_get_value "defaults.$key"
+}
+
+validate_search_config() {
+  if [ ! -f "$SEARCH_CONFIG_FILE" ]; then
+    echo "Error: config file not found: $SEARCH_CONFIG_FILE" >&2
+    return 1
+  fi
+  if ! config_has_key "profiles.order"; then
+    echo "Error: missing profiles.order in config." >&2
+    return 1
+  fi
+  if ! config_has_key "profiles.filename"; then
+    echo "Error: missing profiles.filename in config." >&2
+    return 1
+  fi
+  local p
+  while IFS= read -r p; do
+    if ! config_has_key "profile.$p.content_globs"; then
+      if ! config_has_key "profile.$p.file_globs"; then
+        echo "Error: profile '$p' missing both content_globs and file_globs." >&2
+        return 1
+      fi
+    fi
+  done < <(profile_list_print)
+}
+
+profile_list_text() {
+  local out=""
+  local p
+  while IFS= read -r p; do
+    if [ -n "$out" ]; then
+      out="$out, "
+    fi
+    out="${out}${p}"
+  done < <(profile_list_print)
+  printf '%s' "$out"
+}
+
+profile_default() {
+  local d
+  d=$(config_get_value "profiles.order" | awk -F',' '{print $1}')
+  printf '%s' "$d"
+}
+
+profile_exists() {
+  local profile="$1"
+  profile_list_contains "profiles.order" "$profile"
+}
+
+profile_content_globs_key() {
+  printf 'profile.%s.content_globs' "$1"
+}
+
+profile_file_globs_key() {
+  printf 'profile.%s.file_globs' "$1"
+}
+
+profile_content_supported() {
+  local key
+  key=$(profile_content_globs_key "$1")
+  config_has_key "$key"
+}
+
+profile_file_supported() {
+  local key
+  key=$(profile_file_globs_key "$1")
+  config_has_key "$key"
+}
+
+profile_filename_supported() {
+  profile_list_contains "profiles.filename" "$1"
+}
+
+profile_filename_allows_empty_globs() {
+  case "$1" in
+    filename|x_filename) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+profile_print_help() {
+  local profile_csv
+  profile_csv=$(profile_list_text)
+  printf '%s' "$profile_csv"
 }
 
 profile_is_filename_search() {
-  case "$1" in
-    filename|docs|jar|java_filename|x_filename) return 0 ;;
-    *) return 1 ;;
-  esac
+  profile_filename_supported "$1"
 }
 
 # Build profile-specific rg args for content searches.
@@ -119,42 +227,10 @@ build_profile_args() {
   RG_WORK_ARGS+=("--field-context-separator=${FIELD_CONTEXT_SEP}")
   RG_WORK_ARGS+=("--context-separator=${CONTEXT_BLOCK_SEP}")
   append_common_globs
-
-  case "$profile" in
-    grepx|codescan)
-      RG_WORK_ARGS+=(--glob=!**/*.jar --glob=!**/*.class --glob=!**/*.zip --glob=!**/*.png --glob=!**/*.jpg --glob=!**/*.gif --glob=!**/*.pdf --glob=!**/*.mp4 --glob=!**/*.exe --glob=!**/*.msi --glob=!**/*.7z)
-      ;;
-    android)
-      RG_WORK_ARGS+=(--glob=!**/*.jar --glob=!**/*.class --glob=!**/*.zip --glob=!**/*.apk --glob=!**/*.iml --glob=!**/gradlew --glob=!**/*.png --glob=!**/*.jpg --glob=!**/*.gif --glob=!**/*.pdf --glob=!**/*.mp4 --glob=!**/*.exe --glob=!**/*.msi --glob=!**/*.7z)
-      ;;
-    code)
-      RG_WORK_ARGS+=(--glob=**/*.java --glob=**/*.js --glob=**/*.ts --glob=**/*.tsx --glob=**/*.jsx --glob=**/*.kt --glob=**/*.kts --glob=**/*.xml --glob=**/*.yml --glob=**/*.yaml --glob=**/*.properties --glob=**/*.sh --glob=**/*.bat --glob=**/*.cmd --glob=**/*.ps1)
-      ;;
-    web)
-      RG_WORK_ARGS+=(--glob=**/*.html --glob=**/*.htm --glob=**/*.xhtml --glob=**/*.css --glob=**/*.js --glob=**/*.ts --glob=**/*.jsx --glob=**/*.tsx)
-      ;;
-    java)
-      RG_WORK_ARGS+=(--glob=**/*.java)
-      ;;
-    javascript)
-      RG_WORK_ARGS+=(--glob=**/*.js --glob=**/*.ts --glob=**/*.jsx --glob=**/*.tsx)
-      ;;
-    xhtml)
-      RG_WORK_ARGS+=(--glob=**/*.xhtml --glob=**/*.html --glob=**/*.htm)
-      ;;
-    css)
-      RG_WORK_ARGS+=(--glob=**/*.css)
-      ;;
-    sql)
-      RG_WORK_ARGS+=(--glob=**/*.sql)
-      ;;
-    xml)
-      RG_WORK_ARGS+=(--glob=**/*.xml)
-      ;;
-    *)
-      return 2
-      ;;
-  esac
+  if ! profile_content_supported "$profile"; then
+    return 2
+  fi
+  append_profile_globs "$(profile_content_globs_key "$profile")"
 
   return 0
 }
@@ -177,22 +253,16 @@ run_filename_search() {
 
   append_common_globs
 
-  case "$profile" in
-    filename|x_filename)
-      ;;
-    java_filename)
-      RG_WORK_ARGS+=(--glob=**/*.java)
-      ;;
-    jar)
-      RG_WORK_ARGS+=(--glob=**/*.jar)
-      ;;
-    docs)
-      RG_WORK_ARGS+=(--glob=**/*.doc --glob=**/*.docx --glob=**/*.pdf --glob=**/*.ppt --glob=**/*.pptx --glob=**/*.xls --glob=**/*.xlsx)
-      ;;
-    *)
+  if ! profile_filename_supported "$profile"; then
+    return 2
+  fi
+  if ! profile_file_supported "$profile"; then
+    if ! profile_filename_allows_empty_globs "$profile"; then
       return 2
-      ;;
-  esac
+    fi
+  else
+    append_profile_globs "$(profile_file_globs_key "$profile")"
+  fi
 
   rg "${RG_WORK_ARGS[@]}" | rg --smart-case --color=never -- "$query"
 }

@@ -120,6 +120,8 @@ Examples:
 
 ```bash
 search a-string
+search --profile-list
+search --version
 search --deep a-string
 search --max-per-file 50 a-string
 search xml another-string
@@ -129,6 +131,7 @@ search filename part-of-file-name
 Options:
 
 - `--version`: print version and exit
+- `--profile-list`: print available profiles and exit
 - `--open`: open the generated HTML report after search
 - `--deep` or `--hidden`: include hidden files/directories (slower)
 - `--context N`: context lines before/after each hit (default `3`)
@@ -143,6 +146,12 @@ Each run creates an HTML file in `~/search-results`.
 Optional override:
 
 - Set `SEARCH_RESULTS_DIR` to write results to a custom directory.
+- Set `SEARCH_CONFIG_FILE` to point to a custom profile/default config file.
+
+Shared config:
+
+- Profiles and default limits are centralized in `config/search-profiles.conf`.
+- Both `search.sh` and `search.ps1` read this file to avoid config drift.
 
 ## Notes
 
@@ -209,3 +218,9 @@ winget install Git.Git
 ```
 
 - After installing, close and reopen PowerShell before running `make`.
+
+## CI
+
+- GitHub Actions runs smoke tests on every push and pull request:
+  - macOS: `make test-mac`
+  - Windows: `Invoke-Pester ./tests/smoke.tests.ps1`

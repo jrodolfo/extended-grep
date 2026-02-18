@@ -4,22 +4,23 @@ set -euo pipefail
 VERSION="2.0.0"
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+SEARCH_CONFIG_FILE="${SEARCH_CONFIG_FILE:-$SCRIPT_DIR/config/search-profiles.conf}"
 # shellcheck source=./grepfunctions.sh
 source "$SCRIPT_DIR/grepfunctions.sh"
 
 usage() {
-  cat <<'USAGE'
+  cat <<USAGE
 Usage:
   search [OPTIONS] STRING
   search [OPTIONS] PROFILE STRING
 
 Profiles:
-  grepx (default), codescan, android, code, web, java, java_filename,
-  javascript, xhtml, css, sql, xml, docs, filename, x_filename, jar
+  $(profile_print_help)
 
 Options:
   -h, --help                 Show this help message
   -v, --version              Show version and exit
+  --profile-list             Print profiles and exit
   --open                     Open generated HTML report after search
   --deep                     Include hidden files and directories
   --hidden                   Alias for --deep
@@ -63,13 +64,17 @@ if ! command -v rg >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! validate_search_config; then
+  exit 1
+fi
+
 SEARCH_INCLUDE_HIDDEN=0
-SEARCH_CONTEXT_LINES=3
-SEARCH_MAX_PER_FILE=200
-SEARCH_MAX_FILESIZE="1M"
-SEARCH_MAX_SCAN_LINES=20000
-SEARCH_MAX_LINE_LENGTH=2000
-SEARCH_MAX_RENDER_LINES=12000
+SEARCH_CONTEXT_LINES="$(config_default_value context_lines)"
+SEARCH_MAX_PER_FILE="$(config_default_value max_per_file)"
+SEARCH_MAX_FILESIZE="$(config_default_value max_filesize)"
+SEARCH_MAX_SCAN_LINES="$(config_default_value max_scan_lines)"
+SEARCH_MAX_LINE_LENGTH="$(config_default_value max_line_length)"
+SEARCH_MAX_RENDER_LINES="$(config_default_value max_render_lines)"
 SEARCH_OPEN=0
 
 while [ "$#" -gt 0 ]; do
@@ -80,6 +85,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     -v|--version)
       echo "extended-grep $VERSION"
+      exit 0
+      ;;
+    --profile-list)
+      profile_list_print
       exit 0
       ;;
     --open)
@@ -165,7 +174,7 @@ if [ "$#" -eq 0 ]; then
 fi
 
 if [ "$#" -eq 1 ]; then
-  profile="grepx"
+  profile="$(profile_default)"
   query="$1"
 elif [ "$#" -eq 2 ]; then
   profile="$1"
