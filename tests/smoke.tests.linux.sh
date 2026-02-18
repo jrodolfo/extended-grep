@@ -7,4 +7,4 @@ if [ "$(uname -s)" != "Linux" ]; then
   exit 1
 fi
 
-bash "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/smoke.tests.sh"
+bash "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/smoke.tests.mac.sh"

@@ -13,7 +13,7 @@ All notable changes to this project are documented in this file.
 - Linux smoke test entrypoint `tests/smoke.tests.linux.sh`.
 - `Makefile` targets for `help`, `test-mac`, `test-ps`, `test`, and `run`.
 - GitHub Actions CI workflow for Linux, macOS, and Windows smoke tests.
-- macOS smoke test script `tests/smoke.tests.sh` with deterministic fixture assertions.
+- macOS smoke test script `tests/smoke.tests.mac.sh` with deterministic fixture assertions.
 
 ### Changed
 - Search profile definitions and default limits now come from a single source of truth (`config/search-profiles.conf`).

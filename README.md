@@ -221,7 +221,7 @@ Windows PowerShell:
 macOS / bash:
 
 ```bash
-bash ./tests/smoke.tests.sh
+bash ./tests/smoke.tests.mac.sh
 ```
 
 Linux / bash:
@@ -233,7 +233,7 @@ bash ./tests/smoke.tests.linux.sh
 Windows PowerShell:
 
 ```powershell
-Invoke-Pester ./tests/smoke.tests.ps1
+Invoke-Pester ./tests/smoke.tests.windows.ps1
 ```
 
 Make targets:
@@ -282,7 +282,7 @@ winget install Git.Git
 - GitHub Actions runs smoke tests on every push and pull request:
   - Linux: `make test-linux`
   - macOS: `make test-mac`
-  - Windows: `Invoke-Pester ./tests/smoke.tests.ps1`
+  - Windows: `Invoke-Pester ./tests/smoke.tests.windows.ps1`
 
 ## Qodana Code Quality
 
