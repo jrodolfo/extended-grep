@@ -148,9 +148,15 @@ Windows PowerShell:
 ./search.ps1 PROFILE STRING
 ```
 
-## Smoke Tests (Windows PowerShell)
+## Smoke Tests
 
-Run Pester smoke tests:
+macOS / bash:
+
+```bash
+bash ./tests/search_smoke.sh
+```
+
+Windows PowerShell:
 
 ```powershell
 Invoke-Pester ./tests/Search.Smoke.Tests.ps1
