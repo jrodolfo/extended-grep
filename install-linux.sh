@@ -21,7 +21,9 @@ Try one of these:
   1) Build from Rust toolchain:
      sudo dnf install -y cargo
      cargo install ripgrep
-     export PATH="$HOME/.cargo/bin:$PATH"
+     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+     source ~/.bashrc
+     rg --version
   2) Install ripgrep binary from GitHub releases:
      https://github.com/BurntSushi/ripgrep/releases
 Note: on Amazon Linux, yum uses dnf under the hood, so yum vs dnf is usually not the root cause.
