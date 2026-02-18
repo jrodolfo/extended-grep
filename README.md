@@ -241,6 +241,7 @@ Project files:
 
 - `qodana.yaml`: Qodana configuration (profile, linter image, analysis options)
 - `.github/workflows/qodana_code_quality.yml`: GitHub Actions workflow for automated Qodana scans
+- `how-do-i-install-qodana.md`: installation instructions for Windows and macOS
 - `how-do-i-run-qodana-on-this-project.md`: step-by-step local and CI usage notes
 
 Run locally:
