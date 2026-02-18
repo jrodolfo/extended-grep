@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+VERSION="2.0.0"
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=./grepfunctions.sh
@@ -18,6 +19,8 @@ Profiles:
 
 Options:
   -h, --help                 Show this help message
+  -v, --version              Show version and exit
+  --open                     Open generated HTML report after search
   --deep                     Include hidden files and directories
   --hidden                   Alias for --deep
   --context N                Context lines before/after each hit (default: 3)
@@ -67,12 +70,21 @@ SEARCH_MAX_FILESIZE="1M"
 SEARCH_MAX_SCAN_LINES=20000
 SEARCH_MAX_LINE_LENGTH=2000
 SEARCH_MAX_RENDER_LINES=12000
+SEARCH_OPEN=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help)
       usage
       exit 0
+      ;;
+    -v|--version)
+      echo "extended-grep $VERSION"
+      exit 0
+      ;;
+    --open)
+      SEARCH_OPEN=1
+      shift
       ;;
     --deep|--hidden)
       SEARCH_INCLUDE_HIDDEN=1
@@ -240,3 +252,13 @@ render_ended=$(date +%s)
 
 echo "Result saved to: $output_file"
 echo "Timing: search=$((search_ended-search_started))s render=$((render_ended-render_started))s"
+
+if [ "$SEARCH_OPEN" -eq 1 ]; then
+  if command -v open >/dev/null 2>&1; then
+    open "$output_file" >/dev/null 2>&1 || true
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$output_file" >/dev/null 2>&1 || true
+  else
+    echo "Note: no opener command found (open/xdg-open)." >&2
+  fi
+fi

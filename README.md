@@ -114,6 +114,8 @@ search filename part-of-file-name
 
 Options:
 
+- `--version`: print version and exit
+- `--open`: open the generated HTML report after search
 - `--deep` or `--hidden`: include hidden files/directories (slower)
 - `--context N`: context lines before/after each hit (default `3`)
 - `--max-per-file N`: limit matches per file (default `200`, `0` disables limit)
@@ -160,4 +162,12 @@ Windows PowerShell:
 
 ```powershell
 Invoke-Pester ./tests/smoke.tests.ps1
+```
+
+Make targets:
+
+```bash
+make test-mac
+make test-ps
+make test
 ```

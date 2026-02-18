@@ -5,6 +5,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$Version = '2.0.0'
 $FieldMatchSep = [string][char]31
 $FieldContextSep = [string][char]30
 $ContextBlockSep = [string][char]29
@@ -23,6 +24,8 @@ Profiles:
 
 Options:
   -h, --help                 Show this help message
+  -v, --version              Show version and exit
+  --open                     Open generated HTML report after search
   --deep                     Include hidden files and directories
   --hidden                   Alias for --deep
   --context N                Context lines before/after each hit (default: 3)
@@ -408,6 +411,7 @@ $maxFileSize = '1M'
 $maxScanLines = 20000
 $maxLineLength = 2000
 $maxRenderLines = 12000
+$openAfter = $false
 
 $positionals = New-Object System.Collections.Generic.List[string]
 $i = 0
@@ -416,6 +420,9 @@ while ($i -lt $CliArgs.Count) {
   switch ($arg) {
     '-h' { Show-Usage; exit 0 }
     '--help' { Show-Usage; exit 0 }
+    '-v' { Write-Output "extended-grep $Version"; exit 0 }
+    '--version' { Write-Output "extended-grep $Version"; exit 0 }
+    '--open' { $openAfter = $true }
     '--deep' { $includeHidden = $true }
     '--hidden' { $includeHidden = $true }
     '--context' {
@@ -538,6 +545,13 @@ try {
 
   Write-Host "Result saved to: $outputFile"
   Write-Host "Timing: search=$([int]$searchTimer.Elapsed.TotalSeconds)s render=$([int]$renderTimer.Elapsed.TotalSeconds)s"
+  if ($openAfter) {
+    try {
+      Start-Process $outputFile | Out-Null
+    } catch {
+      Write-Warning "Could not open output file automatically."
+    }
+  }
 } finally {
   Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
   Remove-Item -Path $tempRenderFile -ErrorAction SilentlyContinue

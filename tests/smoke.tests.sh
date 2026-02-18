@@ -43,7 +43,10 @@ assert_file_contains() {
 }
 
 run_search() {
-  SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" "$@"
+  (
+    cd "$REPO_ROOT"
+    SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" "$@"
+  )
 }
 
 echo "Running macOS/bash smoke tests..."
@@ -87,5 +90,31 @@ assert_file_exists "$out"
 assert_file_contains "$out" 'No files found.'
 
 echo "[ok] no-filename match case handled"
+
+# 5) deterministic fixture rendering checks
+query='fox'
+out="$RESULTS_DIR/${query}.grepx.html"
+rm -f "$out"
+(
+  cd "$REPO_ROOT/tests/documents"
+  SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" "$query" >/dev/null
+)
+assert_file_exists "$out"
+if ! rg -q '\(file 1 of [0-9]+\)' "$out"; then
+  echo "Assertion failed: expected first file counter header." >&2
+  exit 1
+fi
+if ! rg -q 'hit [0-9]+ of [0-9]+' "$out"; then
+  echo "Assertion failed: expected hit counters in match rows." >&2
+  exit 1
+fi
+assert_file_contains "$out" 'row context'
+assert_file_contains "$out" 'article:published_time'
+if ! rg -q 'row context.*article:published_time' "$out"; then
+  echo "Assertion failed: expected article:published_time to be a context row." >&2
+  exit 1
+fi
+
+echo "[ok] fixture rendering includes file counters and context/match structure"
 
 echo "All macOS/bash smoke tests passed."

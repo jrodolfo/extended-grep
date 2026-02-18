@@ -3,5 +3,10 @@
 .idea/
 out/
 
-# Mac users
+# macOS
 .DS_Store
+
+# local outputs / test artifacts
+search-results/
+.tmp-test-home/
+.tmp-test-home-*/
