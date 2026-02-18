@@ -54,7 +54,7 @@ run_search() {
   )
 }
 
-echo "Running macOS/bash smoke tests..."
+echo "Running shell smoke tests..."
 
 # 1) default profile
 query='extended-grep'
@@ -135,4 +135,4 @@ fi
 
 echo "[ok] fixture rendering includes file counters and context/match structure"
 
-echo "All macOS/bash smoke tests passed."
+echo "All shell smoke tests passed."

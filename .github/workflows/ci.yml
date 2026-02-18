@@ -5,6 +5,22 @@ on:
   pull_request:
 
 jobs:
+  linux-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure ripgrep
+        run: |
+          if ! command -v rg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ripgrep
+          fi
+
+      - name: Run Linux smoke tests
+        run: make test-linux
+
   mac-smoke:
     runs-on: macos-latest
     steps:

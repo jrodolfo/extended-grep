@@ -33,7 +33,7 @@ Search result for `search "fox, "`:
 
 - Recursive project search with profiles (`grepx`, `code`, `xml`, `filename`, etc.)
 - Colorized HTML output per search for faster visual scanning
-- Works on macOS and Windows
+- Works on macOS, Linux, and Windows
 
 ## Prerequisites
 
@@ -51,6 +51,16 @@ Windows (PowerShell):
 winget install BurntSushi.ripgrep.MSVC
 ```
 
+Linux:
+
+```bash
+# Amazon Linux / Fedora / RHEL (dnf)
+sudo dnf install -y ripgrep
+
+# Ubuntu / Debian (apt)
+sudo apt-get update && sudo apt-get install -y ripgrep
+```
+
 ## Install on macOS
 
 1. Clone this repository.
@@ -58,6 +68,21 @@ winget install BurntSushi.ripgrep.MSVC
 
 ```bash
 ./install-macos.sh
+```
+
+3. Open a new terminal and run:
+
+```bash
+search a-string
+```
+
+## Install on Linux
+
+1. Clone this repository.
+2. Run:
+
+```bash
+./install-linux.sh
 ```
 
 3. Open a new terminal and run:
@@ -181,6 +206,12 @@ macOS / bash:
 bash ./tests/smoke.tests.sh
 ```
 
+Linux / bash:
+
+```bash
+bash ./tests/smoke.tests.linux.sh
+```
+
 Windows PowerShell:
 
 ```powershell
@@ -193,6 +224,7 @@ Make targets:
 make
 make help
 make test-mac
+make test-linux
 make test-ps
 make test
 make run ARGS="fox"
@@ -230,6 +262,7 @@ winget install Git.Git
 ## CI
 
 - GitHub Actions runs smoke tests on every push and pull request:
+  - Linux: `make test-linux`
   - macOS: `make test-mac`
   - Windows: `Invoke-Pester ./tests/smoke.tests.ps1`
 
