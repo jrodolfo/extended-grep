@@ -38,7 +38,7 @@ Environment:
 Examples:
   search fox
   search --deep fox
-  search --max-per-file 50 xml a-string
+  search --max-per-file 50 xml fox
   search filename part-of-file-name
 "@
 }
