@@ -76,6 +76,49 @@ function Trim-TextForDisplay([string]$Text, [bool]$IsMatch, [string]$Query, [int
   return $Text.Substring(0, $MaxLineLength) + ' ... [trimmed]'
 }
 
+function Mark-TxtMatches([string]$Text, [string]$Query) {
+  if ([string]::IsNullOrWhiteSpace($Query) -or [string]::IsNullOrEmpty($Text)) {
+    return $Text
+  }
+
+  $sb = [System.Text.StringBuilder]::new()
+  $cursor = 0
+  while ($true) {
+    $idx = $Text.IndexOf($Query, $cursor, [System.StringComparison]::OrdinalIgnoreCase)
+    if ($idx -lt 0) {
+      [void]$sb.Append($Text.Substring($cursor))
+      break
+    }
+    [void]$sb.Append($Text.Substring($cursor, $idx - $cursor))
+    [void]$sb.Append('[[')
+    [void]$sb.Append($Text.Substring($idx, $Query.Length))
+    [void]$sb.Append(']]')
+    $cursor = $idx + $Query.Length
+    if ($cursor -ge $Text.Length) { break }
+  }
+  return $sb.ToString()
+}
+
+function Get-TxtMatchPreview([string]$Text, [string]$Query) {
+  if ([string]::IsNullOrWhiteSpace($Query) -or [string]::IsNullOrEmpty($Text)) {
+    return ''
+  }
+
+  $idx = $Text.IndexOf($Query, [System.StringComparison]::OrdinalIgnoreCase)
+  if ($idx -lt 0) {
+    return ''
+  }
+
+  $width = 160
+  $start = $idx - [int]($width / 3)
+  if ($start -lt 0) { $start = 0 }
+  $len = [Math]::Min($width, $Text.Length - $start)
+  $prefix = if ($start -gt 0) { '... ' } else { '' }
+  $suffix = if (($start + $len) -lt $Text.Length) { ' ...' } else { '' }
+  $snippet = $prefix + $Text.Substring($start, $len) + $suffix
+  return Mark-TxtMatches -Text $snippet -Query $Query
+}
+
 function Safe-Name([string]$Text) {
   if ([string]::IsNullOrWhiteSpace($Text)) { return 'search' }
   $v = $Text -replace '\s+', '_'
@@ -487,7 +530,12 @@ function Add-TxtContentResults([System.Text.StringBuilder]$sb, [string[]]$Lines,
       $currentFileHitIndex = $currentFileHitIndex + 1
       $skipContextAfterLastHit = ($currentFileHitIndex -ge $currentFileHitTotal)
       $displayText = Trim-TextForDisplay -Text $text -IsMatch $true -Query $Query -MaxLineLength $MaxLineLength
-      [void]$sb.AppendLine("  $lineNo | $colNo | $displayText (hit $currentFileHitIndex of $currentFileHitTotal)")
+      $markedDisplayText = Mark-TxtMatches -Text $displayText -Query $Query
+      [void]$sb.AppendLine("  $lineNo | $colNo | $markedDisplayText (hit $currentFileHitIndex of $currentFileHitTotal)")
+      $matchPreview = Get-TxtMatchPreview -Text $text -Query $Query
+      if (-not [string]::IsNullOrWhiteSpace($matchPreview)) {
+        [void]$sb.AppendLine("      match: $matchPreview")
+      }
       continue
     }
 

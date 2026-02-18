@@ -101,6 +101,7 @@ Describe 'search.ps1 smoke tests' {
     $content = Get-Content -Path $outputFile -Raw
     $content | Should -Match 'profile: grepx'
     $content | Should -Match 'hit [0-9]+ of [0-9]+'
+    $content | Should -Match '\[\['
   }
 
   It 'creates TXT output for filename search' {

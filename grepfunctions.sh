@@ -71,6 +71,95 @@ trim_text_for_display() {
   printf '%s ... [trimmed]' "$(printf '%s' "$text" | awk -v ln="$max" '{ print substr($0, 1, ln); }')"
 }
 
+txt_mark_matches() {
+  local text="$1"
+  local query="$2"
+
+  if [ -z "$query" ]; then
+    printf '%s' "$text"
+    return
+  fi
+
+  local qlen=${#query}
+  local rest="$text"
+  local out=""
+  local idx
+  local lower_rest
+  local lower_query
+
+  while :; do
+    lower_rest=$(printf '%s' "$rest" | tr '[:upper:]' '[:lower:]')
+    lower_query=$(printf '%s' "$query" | tr '[:upper:]' '[:lower:]')
+    idx=-1
+    local i
+    for ((i=0; i+qlen<=${#lower_rest}; i++)); do
+      if [ "${lower_rest:i:qlen}" = "$lower_query" ]; then
+        idx=$i
+        break
+      fi
+    done
+
+    if [ "$idx" -lt 0 ]; then
+      out+="$rest"
+      break
+    fi
+
+    out+="${rest:0:idx}[[${rest:idx:qlen}]]"
+    rest="${rest:idx+qlen}"
+  done
+
+  printf '%s' "$out"
+}
+
+txt_match_preview() {
+  local text="$1"
+  local query="$2"
+  local width=160
+
+  if [ -z "$query" ]; then
+    printf ''
+    return
+  fi
+
+  local lower_text
+  local lower_query
+  lower_text=$(printf '%s' "$text" | tr '[:upper:]' '[:lower:]')
+  lower_query=$(printf '%s' "$query" | tr '[:upper:]' '[:lower:]')
+  local qlen=${#query}
+  local pos=-1
+  local i
+  for ((i=0; i+qlen<=${#lower_text}; i++)); do
+    if [ "${lower_text:i:qlen}" = "$lower_query" ]; then
+      pos=$i
+      break
+    fi
+  done
+
+  if [ "$pos" -lt 0 ]; then
+    printf ''
+    return
+  fi
+
+  local start=$(( pos - (width / 3) ))
+  if [ "$start" -lt 0 ]; then
+    start=0
+  fi
+  local len=$width
+  if [ $(( start + len )) -gt "${#text}" ]; then
+    len=$(( ${#text} - start ))
+  fi
+  local prefix=""
+  local suffix=""
+  if [ "$start" -gt 0 ]; then
+    prefix="... "
+  fi
+  if [ $(( start + len )) -lt "${#text}" ]; then
+    suffix=" ..."
+  fi
+  local snippet="${prefix}${text:start:len}${suffix}"
+  txt_mark_matches "$snippet" "$query"
+}
+
 safe_filename() {
   local input="$1"
   input=$(printf '%s' "$input" | tr ' ' '_')
@@ -568,8 +657,15 @@ render_content_report_txt() {
       fi
       local display_text
       display_text=$(trim_text_for_display "$text" 1 "$query")
+      local marked_text
+      marked_text=$(txt_mark_matches "$display_text" "$query")
+      local match_preview
+      match_preview=$(txt_match_preview "$text" "$query")
       printf '  %s | %s | %s (hit %s of %s)\n' \
-        "$line_no" "$col_no" "$display_text" "$current_file_hit_index" "$current_file_total_hits"
+        "$line_no" "$col_no" "$marked_text" "$current_file_hit_index" "$current_file_total_hits"
+      if [ -n "$match_preview" ]; then
+        printf '      match: %s\n' "$match_preview"
+      fi
       continue
     fi
 

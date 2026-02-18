@@ -105,6 +105,7 @@ assert_file_exists "$out"
 assert_file_contains "$out" 'extended-grep'
 assert_file_contains "$out" 'profile: grepx'
 assert_file_contains "$out" '\(hit [0-9]+ of [0-9]+\)'
+assert_file_contains "$out" '\[\['
 
 echo "[ok] txt content output handled"
 
