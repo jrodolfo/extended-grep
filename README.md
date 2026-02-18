@@ -167,7 +167,31 @@ Invoke-Pester ./tests/smoke.tests.ps1
 Make targets:
 
 ```bash
+make
+make help
 make test-mac
 make test-ps
 make test
+make run ARGS="fox"
 ```
+
+- `make` / `make help`: list available targets
+- `make run ARGS="..."`: run `search.sh` with custom arguments
+
+Windows note:
+
+- The `make` commands above require `make` to be installed.
+- Run the install commands from **PowerShell** (recommended), using `winget`.
+- Option 1 (standalone make):
+
+```powershell
+winget install GnuWin32.Make
+```
+
+- Option 2 (Git Bash, which also includes `make` in many setups):
+
+```powershell
+winget install Git.Git
+```
+
+- After installing, close and reopen PowerShell before running `make`.
