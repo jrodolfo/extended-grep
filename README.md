@@ -153,11 +153,11 @@ Windows PowerShell:
 macOS / bash:
 
 ```bash
-bash ./tests/search_smoke.sh
+bash ./tests/smoke.tests.sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-Invoke-Pester ./tests/Search.Smoke.Tests.ps1
+Invoke-Pester ./tests/smoke.tests.ps1
 ```

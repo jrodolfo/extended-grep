@@ -23,6 +23,12 @@ Describe 'search.ps1 smoke tests' {
 
     New-Item -Path $script:resultsDir -ItemType Directory -Force | Out-Null
     $env:SEARCH_RESULTS_DIR = $script:resultsDir
+
+    function script:Remove-OutputFile([string]$Path) {
+      if (Test-Path $Path) {
+        Remove-Item -Path $Path -Force
+      }
+    }
   }
 
   AfterAll {
@@ -37,47 +43,41 @@ Describe 'search.ps1 smoke tests' {
     }
   }
 
-  function Remove-OutputFile([string]$Path) {
-    if (Test-Path $Path) {
-      Remove-Item -Path $Path -Force
-    }
-  }
-
   It 'creates HTML output for default profile search' {
     $query = 'extended-grep'
     $outputFile = Join-Path $script:resultsDir "$query.grepx.html"
     Remove-OutputFile $outputFile
-    { & $script:searchScript $query } | Should Not Throw
+    { & $script:searchScript $query } | Should -Not -Throw
 
-    (Test-Path $outputFile) | Should Be $true
-    (Get-Content -Path $outputFile -Raw) | Should Match 'extended-grep'
+    (Test-Path $outputFile) | Should -Be $true
+    (Get-Content -Path $outputFile -Raw) | Should -Match 'extended-grep'
   }
 
   It 'creates HTML output for filename profile search' {
     $query = 'search.ps1'
     $outputFile = Join-Path $script:resultsDir "$query.filename.html"
     Remove-OutputFile $outputFile
-    { & $script:searchScript 'filename' $query } | Should Not Throw
+    { & $script:searchScript 'filename' $query } | Should -Not -Throw
 
-    (Test-Path $outputFile) | Should Be $true
-    (Get-Content -Path $outputFile -Raw) | Should Match 'Matching files'
+    (Test-Path $outputFile) | Should -Be $true
+    (Get-Content -Path $outputFile -Raw) | Should -Match 'Matching files'
   }
 
   It 'handles no-content matches without crashing' {
     $query = [Guid]::NewGuid().ToString('N')
-    { & $script:searchScript 'code' $query } | Should Not Throw
+    { & $script:searchScript 'code' $query } | Should -Not -Throw
 
     $outputFile = Join-Path $script:resultsDir "$query.code.html"
-    (Test-Path $outputFile) | Should Be $true
-    (Get-Content -Path $outputFile -Raw) | Should Match 'No matches found.'
+    (Test-Path $outputFile) | Should -Be $true
+    (Get-Content -Path $outputFile -Raw) | Should -Match 'No matches found.'
   }
 
   It 'handles no-filename matches without crashing' {
     $query = [Guid]::NewGuid().ToString('N')
-    { & $script:searchScript 'filename' $query } | Should Not Throw
+    { & $script:searchScript 'filename' $query } | Should -Not -Throw
 
     $outputFile = Join-Path $script:resultsDir "$query.filename.html"
-    (Test-Path $outputFile) | Should Be $true
-    (Get-Content -Path $outputFile -Raw) | Should Match 'No files found.'
+    (Test-Path $outputFile) | Should -Be $true
+    (Get-Content -Path $outputFile -Raw) | Should -Match 'No files found.'
   }
 }
