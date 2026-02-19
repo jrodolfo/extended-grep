@@ -10,3 +10,6 @@ out/
 search-results/
 .tmp-test-home/
 .tmp-test-home-*/
+
+doc/notes/dev-notes.txt
+doc/notes/skills/
