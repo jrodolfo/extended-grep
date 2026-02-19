@@ -11,6 +11,7 @@ All notable changes to this project are documented in this file.
 - `--format html|txt` option in `search.sh` and `search.ps1` (default remains HTML).
 - Linux installer script `install-linux.sh`.
 - Linux smoke test entrypoint `tests/smoke.tests.linux.sh`.
+- Diverse multi-format fixtures under `tests/documents/diverse` to strengthen smoke coverage.
 - `Makefile` targets for `help`, `test-mac`, `test-ps`, `test`, and `run`.
 - GitHub Actions CI workflow for Linux, macOS, and Windows smoke tests.
 - macOS smoke test script `tests/smoke.tests.mac.sh` with deterministic fixture assertions.

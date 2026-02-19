@@ -161,4 +161,22 @@ fi
 
 echo "[ok] fixture rendering includes file counters and context/match structure"
 
+# 9) diverse fixture set: punctuation query and multi-format coverage
+query='fox, '
+out="$RESULTS_DIR/fox_.grepx.txt"
+rm -f "$out"
+(
+  cd "$REPO_ROOT/tests/documents/diverse"
+  SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" --format txt "$query" >/dev/null
+)
+assert_file_exists "$out"
+assert_file_contains "$out" 'sample.json'
+assert_file_contains "$out" 'sample.xml'
+assert_file_contains "$out" 'sample.yaml'
+assert_file_contains "$out" 'sample.csv'
+assert_file_contains "$out" 'file with spaces.txt'
+assert_file_contains "$out" '\[\[fox, \]\]'
+
+echo "[ok] diverse fixtures cover punctuation, spaces, and multiple file types"
+
 echo "All shell smoke tests passed."

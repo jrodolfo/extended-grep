@@ -113,4 +113,26 @@ Describe 'search.ps1 smoke tests' {
     (Test-Path $outputFile) | Should -Be $true
     (Get-Content -Path $outputFile -Raw) | Should -Match '\(file [0-9]+ of [0-9]+\)'
   }
+
+  It 'handles punctuation query across diverse fixture types in TXT mode' {
+    $query = 'fox, '
+    $outputFile = Join-Path $script:resultsDir 'fox_.grepx.txt'
+    Remove-OutputFile $outputFile
+
+    Push-Location (Join-Path $script:repoRoot 'tests/documents/diverse')
+    try {
+      { & $script:searchScript '--format' 'txt' $query } | Should -Not -Throw
+    } finally {
+      Pop-Location
+    }
+
+    (Test-Path $outputFile) | Should -Be $true
+    $content = Get-Content -Path $outputFile -Raw
+    $content | Should -Match 'sample.json'
+    $content | Should -Match 'sample.xml'
+    $content | Should -Match 'sample.yaml'
+    $content | Should -Match 'sample.csv'
+    $content | Should -Match 'file with spaces.txt'
+    $content | Should -Match '\[\[fox, \]\]'
+  }
 }
