@@ -12,6 +12,7 @@ All notable changes to this project are documented in this file.
 - Linux installer script `install-linux.sh`.
 - Linux smoke test entrypoint `tests/smoke.tests.linux.sh`.
 - Diverse multi-format fixtures under `tests/documents/diverse` to strengthen smoke coverage.
+- Limit-focused fixtures/assertions under `tests/documents/limits` covering `--max-per-file`, `--max-scan-lines`, and `--max-render-lines`.
 - `Makefile` targets for `help`, `test-mac`, `test-ps`, `test`, and `run`.
 - GitHub Actions CI workflow for Linux, macOS, and Windows smoke tests.
 - macOS smoke test script `tests/smoke.tests.mac.sh` with deterministic fixture assertions.

@@ -164,6 +164,7 @@ search --version
 search --format txt fox
 search --deep a-string
 search --max-per-file 50 a-string
+search --format txt --context 0 --max-per-file 2 --max-scan-lines 500 --max-render-lines 200 fox
 search xml another-string
 search filename part-of-file-name
 ```

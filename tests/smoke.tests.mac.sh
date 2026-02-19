@@ -47,6 +47,15 @@ assert_file_contains() {
   fi
 }
 
+assert_file_not_contains() {
+  local path="$1"
+  local pattern="$2"
+  if rg -q -- "$pattern" "$path"; then
+    echo "Assertion failed: expected $path to NOT contain '$pattern'" >&2
+    exit 1
+  fi
+}
+
 run_search() {
   (
     cd "$REPO_ROOT"
@@ -178,5 +187,34 @@ assert_file_contains "$out" 'file with spaces.txt'
 assert_file_contains "$out" '\[\[fox, \]\]'
 
 echo "[ok] diverse fixtures cover punctuation, spaces, and multiple file types"
+
+# 10) limits behavior: max-per-file
+query='fox'
+out="$RESULTS_DIR/${query}.grepx.txt"
+rm -f "$out"
+(
+  cd "$REPO_ROOT/tests/documents/limits"
+  SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" --format txt --context 0 --max-per-file 2 "$query" >/dev/null
+)
+assert_file_exists "$out"
+assert_file_contains "$out" 'hit 1 of 2'
+assert_file_contains "$out" 'hit 2 of 2'
+assert_file_not_contains "$out" 'hit 3 of'
+
+echo "[ok] max-per-file cap is enforced"
+
+# 11) limits behavior: max-scan-lines + max-render-lines
+query='fox'
+out="$RESULTS_DIR/${query}.grepx.txt"
+rm -f "$out"
+(
+  cd "$REPO_ROOT/tests/documents/limits"
+  SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" --format txt --context 0 --max-per-file 0 --max-scan-lines 5 --max-render-lines 3 "$query" >/dev/null
+)
+assert_file_exists "$out"
+assert_file_contains "$out" 'note: output truncated to 3 lines \(original: 5\)'
+assert_file_contains "$out" 'hit 3 of 3'
+
+echo "[ok] max-scan-lines and max-render-lines caps are enforced"
 
 echo "All shell smoke tests passed."

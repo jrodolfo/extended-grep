@@ -135,4 +135,45 @@ Describe 'search.ps1 smoke tests' {
     $content | Should -Match 'file with spaces.txt'
     $content | Should -Match '\[\[fox, \]\]'
   }
+
+  It 'enforces --max-per-file in TXT mode' {
+    $query = 'fox'
+    $outputFile = Join-Path $script:resultsDir "$query.grepx.txt"
+    Remove-OutputFile $outputFile
+
+    Push-Location (Join-Path $script:repoRoot 'tests/documents/limits')
+    try {
+      {
+        & $script:searchScript '--format' 'txt' '--context' '0' '--max-per-file' '2' $query
+      } | Should -Not -Throw
+    } finally {
+      Pop-Location
+    }
+
+    (Test-Path $outputFile) | Should -Be $true
+    $content = Get-Content -Path $outputFile -Raw
+    $content | Should -Match 'hit 1 of 2'
+    $content | Should -Match 'hit 2 of 2'
+    $content | Should -Not -Match 'hit 3 of'
+  }
+
+  It 'enforces --max-scan-lines and --max-render-lines in TXT mode' {
+    $query = 'fox'
+    $outputFile = Join-Path $script:resultsDir "$query.grepx.txt"
+    Remove-OutputFile $outputFile
+
+    Push-Location (Join-Path $script:repoRoot 'tests/documents/limits')
+    try {
+      {
+        & $script:searchScript '--format' 'txt' '--context' '0' '--max-per-file' '0' '--max-scan-lines' '5' '--max-render-lines' '3' $query
+      } | Should -Not -Throw
+    } finally {
+      Pop-Location
+    }
+
+    (Test-Path $outputFile) | Should -Be $true
+    $content = Get-Content -Path $outputFile -Raw
+    $content | Should -Match 'output truncated to 3 lines \(original: 5\)'
+    $content | Should -Match 'hit 3 of 3'
+  }
 }
