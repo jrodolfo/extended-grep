@@ -48,6 +48,7 @@ Environment:
 
 Examples:
   search fox
+  search --format txt fox
   search --deep fox
   search --max-per-file 50 xml fox
   search filename part-of-file-name
