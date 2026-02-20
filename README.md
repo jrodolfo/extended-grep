@@ -126,11 +126,33 @@ search a-string
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-4. Open a new PowerShell window and run:
+4. Run right away in the same PowerShell session:
 
 ```powershell
 search a-string
 ```
+
+5. If `search` is still not found in the same session, load your profile once:
+
+```powershell
+. $PROFILE
+search a-string
+```
+
+6. For future sessions, open a new PowerShell window and run:
+
+```powershell
+search a-string
+```
+
+Troubleshooting:
+
+```powershell
+Get-Command search -All
+Test-Path $PROFILE
+```
+
+If your shell is started with `-NoProfile`, profile-based functions (including `search`) will not load automatically.
 
 ## Usage
 

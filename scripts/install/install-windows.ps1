@@ -23,11 +23,38 @@ if (-not (Test-Path $profilePath)) {
   New-Item -Path $profilePath -ItemType File -Force | Out-Null
 }
 
-$aliasLine = "function search { & '$targetDir/search.ps1' @args }"
-$content = Get-Content -Path $profilePath -Raw
-if ($content -notmatch [regex]::Escape($aliasLine)) {
-  Add-Content -Path $profilePath -Value "`n# extended-grep`n$aliasLine`n"
+$profileStart = '# >>> extended-grep >>>'
+$profileEnd = '# <<< extended-grep <<<'
+$searchScriptPath = Join-Path $targetDir 'search.ps1'
+$searchFunction = "function search { & '$searchScriptPath' `@args }"
+$searchFunctionBody = "& '$searchScriptPath' `@args"
+$managedBlock = @"
+$profileStart
+$searchFunction
+$profileEnd
+"@
+
+$content = ''
+$rawContent = Get-Content -Path $profilePath -Raw -ErrorAction SilentlyContinue
+if ($null -ne $rawContent) {
+  $content = [string]$rawContent
+}
+$managedPattern = "(?ms)^\s*# >>> extended-grep >>>.*?# <<< extended-grep <<<\s*"
+if ($content -match $managedPattern) {
+  $updated = [regex]::Replace($content, $managedPattern, "$managedBlock`r`n")
+  Set-Content -Path $profilePath -Value $updated
+} elseif ($content -notmatch [regex]::Escape($searchFunction)) {
+  Add-Content -Path $profilePath -Value "`n$managedBlock`n"
 }
 
+# Also define in the current session so `search` works right after install.
+Set-Item -Path Function:\global:search -Value $searchFunctionBody
+
 Write-Host "Installed search.ps1 to $targetDir"
-Write-Host 'Open a new PowerShell window, then run: search STRING'
+Write-Host 'Added/updated search function in your PowerShell profile.'
+if (Get-Command search -ErrorAction SilentlyContinue) {
+  Write-Host 'search is ready in this session. Try: search STRING'
+} else {
+  Write-Warning 'search is not available in this session. Run: . $PROFILE'
+  Write-Warning 'If that fails, ensure this shell is not running with -NoProfile.'
+}
