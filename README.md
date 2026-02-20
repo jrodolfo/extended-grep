@@ -41,7 +41,6 @@ Search result for `search "fox, "`:
 - `scripts/runtime/`: runtime search implementation (`search.sh`, `search.ps1`, `grepfunctions.sh`)
 - `scripts/install/`: platform installers
 - `scripts/tests/`: smoke tests and fixtures
-- root-level `search.*` and `install-*` are thin compatibility wrappers
 
 ## Prerequisites
 
@@ -88,7 +87,7 @@ source ~/.bashrc
 2. Run:
 
 ```bash
-./install-macos.sh
+./scripts/install/install-macos.sh
 ```
 
 3. Open a new terminal and run:
@@ -103,7 +102,7 @@ search a-string
 2. Run:
 
 ```bash
-./install-linux.sh
+./scripts/install/install-linux.sh
 ```
 
 3. Open a new terminal and run:
@@ -118,7 +117,7 @@ search a-string
 2. Run in PowerShell:
 
 ```powershell
-./install-windows.ps1
+./scripts/install/install-windows.ps1
 ```
 
 3. If script execution is blocked, run once (current user):
@@ -202,7 +201,7 @@ Optional override:
 Shared config:
 
 - Profiles and default limits are centralized in `config/search-profiles.conf`.
-- Both `search.sh` and `search.ps1` read this file to avoid config drift.
+- Both `scripts/runtime/search.sh` and `scripts/runtime/search.ps1` read this file to avoid config drift.
 
 ## Notes
 
@@ -213,15 +212,15 @@ Shared config:
 macOS/Linux shell:
 
 ```bash
-./search.sh STRING
-./search.sh PROFILE STRING
+./scripts/runtime/search.sh STRING
+./scripts/runtime/search.sh PROFILE STRING
 ```
 
 Windows PowerShell:
 
 ```powershell
-./search.ps1 STRING
-./search.ps1 PROFILE STRING
+./scripts/runtime/search.ps1 STRING
+./scripts/runtime/search.ps1 PROFILE STRING
 ```
 
 ## Smoke Tests
