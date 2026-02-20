@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help test test-mac test-linux test-ps run
+.PHONY: help test test-mac test-linux test-ps run uninstall-mac uninstall-linux uninstall-windows
 
 help:
 	@echo "Available targets:"
@@ -9,6 +9,9 @@ help:
 	@echo "  make test-linux           - Run Linux bash smoke tests"
 	@echo "  make test-ps              - Run PowerShell smoke tests"
 	@echo "  make run ARGS=\"...\"       - Run extended-grep (e.g. ARGS=\"fox\")"
+	@echo "  make uninstall-mac        - Uninstall from macOS user home"
+	@echo "  make uninstall-linux      - Uninstall from Linux user home"
+	@echo "  make uninstall-windows    - Uninstall from Windows user home (pwsh)"
 
 test: test-mac test-ps
 
@@ -23,3 +26,12 @@ test-ps:
 
 run:
 	bash ./scripts/runtime/search.sh $(ARGS)
+
+uninstall-mac:
+	bash ./scripts/uninstall/uninstall-macos.sh
+
+uninstall-linux:
+	bash ./scripts/uninstall/uninstall-linux.sh
+
+uninstall-windows:
+	pwsh -NoProfile -Command "& ./scripts/uninstall/uninstall-windows.ps1"

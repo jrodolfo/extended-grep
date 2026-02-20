@@ -10,10 +10,14 @@ All notable changes to this project are documented in this file.
 - `--version` and `--open` options in `search.sh` and `search.ps1`.
 - `--format html|txt` option in `search.sh` and `search.ps1` (default remains HTML).
 - Linux installer script `scripts/install/install-linux.sh`.
+- Uninstall scripts for all platforms:
+  - `scripts/uninstall/uninstall-macos.sh`
+  - `scripts/uninstall/uninstall-linux.sh`
+  - `scripts/uninstall/uninstall-windows.ps1`
 - Linux smoke test entrypoint `scripts/tests/smoke.tests.linux.sh`.
 - Diverse multi-format fixtures under `scripts/tests/documents/diverse` to strengthen smoke coverage.
 - Limit-focused fixtures/assertions under `scripts/tests/documents/limits` covering `--max-per-file`, `--max-scan-lines`, and `--max-render-lines`.
-- `Makefile` targets for `help`, `test-mac`, `test-ps`, `test`, and `run`.
+- `Makefile` targets for `help`, `test-mac`, `test-ps`, `test`, `run`, and uninstall helpers.
 - GitHub Actions CI workflow for Linux, macOS, and Windows smoke tests.
 - macOS smoke test script `scripts/tests/smoke.tests.mac.sh` with deterministic fixture assertions.
 

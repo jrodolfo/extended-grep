@@ -3,7 +3,8 @@ $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoDir = (Resolve-Path (Join-Path $scriptDir '../..')).Path
 $runtimeDir = Join-Path $repoDir 'scripts/runtime'
-$targetDir = Join-Path $HOME '.extended-grep'
+$installHome = if ($env:SEARCH_HOME_OVERRIDE) { $env:SEARCH_HOME_OVERRIDE } else { $HOME }
+$targetDir = Join-Path $installHome '.extended-grep'
 New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
 
 if (-not (Get-Command rg -ErrorAction SilentlyContinue)) {
@@ -14,7 +15,7 @@ Copy-Item (Join-Path $runtimeDir 'search.ps1') (Join-Path $targetDir 'search.ps1
 New-Item -Path (Join-Path $targetDir 'config') -ItemType Directory -Force | Out-Null
 Copy-Item (Join-Path $repoDir 'config/search-profiles.conf') (Join-Path $targetDir 'config/search-profiles.conf') -Force
 
-$profilePath = $PROFILE
+$profilePath = if ($env:SEARCH_PROFILE_PATH) { $env:SEARCH_PROFILE_PATH } else { $PROFILE }
 $profileDir = Split-Path -Parent $profilePath
 if (-not (Test-Path $profileDir)) {
   New-Item -Path $profileDir -ItemType Directory -Force | Out-Null

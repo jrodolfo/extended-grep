@@ -38,6 +38,14 @@ assert_file_exists() {
   fi
 }
 
+assert_file_not_exists() {
+  local path="$1"
+  if [ -e "$path" ]; then
+    echo "Assertion failed: expected path to be absent: $path" >&2
+    exit 1
+  fi
+}
+
 assert_file_contains() {
   local path="$1"
   local pattern="$2"
@@ -216,5 +224,33 @@ assert_file_contains "$out" 'note: output truncated to 3 lines \(original: 5\)'
 assert_file_contains "$out" 'hit 3 of 3'
 
 echo "[ok] max-scan-lines and max-render-lines caps are enforced"
+
+# 12) installer/uninstaller behavior (macOS script) in isolated HOME
+TEMP_HOME="$TEST_ROOT/home-macos"
+mkdir -p "$TEMP_HOME"
+HOME="$TEMP_HOME" bash "$REPO_ROOT/scripts/install/install-macos.sh" >/dev/null
+assert_file_exists "$TEMP_HOME/.local/bin/search"
+assert_file_exists "$TEMP_HOME/.local/bin/grepfunctions.sh"
+assert_file_exists "$TEMP_HOME/.local/bin/config/search-profiles.conf"
+HOME="$TEMP_HOME" bash "$REPO_ROOT/scripts/uninstall/uninstall-macos.sh" >/dev/null
+assert_file_not_exists "$TEMP_HOME/.local/bin/search"
+assert_file_not_exists "$TEMP_HOME/.local/bin/grepfunctions.sh"
+assert_file_not_exists "$TEMP_HOME/.local/bin/config/search-profiles.conf"
+
+echo "[ok] macos install/uninstall scripts work in isolated home"
+
+# 13) installer/uninstaller behavior (linux script) in isolated HOME
+TEMP_HOME="$TEST_ROOT/home-linux"
+mkdir -p "$TEMP_HOME"
+HOME="$TEMP_HOME" bash "$REPO_ROOT/scripts/install/install-linux.sh" >/dev/null
+assert_file_exists "$TEMP_HOME/.local/bin/search"
+assert_file_exists "$TEMP_HOME/.local/bin/grepfunctions.sh"
+assert_file_exists "$TEMP_HOME/.local/bin/config/search-profiles.conf"
+HOME="$TEMP_HOME" bash "$REPO_ROOT/scripts/uninstall/uninstall-linux.sh" >/dev/null
+assert_file_not_exists "$TEMP_HOME/.local/bin/search"
+assert_file_not_exists "$TEMP_HOME/.local/bin/grepfunctions.sh"
+assert_file_not_exists "$TEMP_HOME/.local/bin/config/search-profiles.conf"
+
+echo "[ok] linux install/uninstall scripts work in isolated home"
 
 echo "All shell smoke tests passed."

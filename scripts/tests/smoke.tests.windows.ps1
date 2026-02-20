@@ -176,4 +176,48 @@ Describe 'search.ps1 smoke tests' {
     $content | Should -Match 'output truncated to 3 lines \(original: 5\)'
     $content | Should -Match 'hit 3 of 3'
   }
+
+  It 'runs windows install and uninstall scripts in isolated home/profile' {
+    $installScript = Join-Path $script:repoRoot 'scripts/install/install-windows.ps1'
+    $uninstallScript = Join-Path $script:repoRoot 'scripts/uninstall/uninstall-windows.ps1'
+    $isolatedHome = Join-Path $script:testRoot 'ps-home'
+    $isolatedProfile = Join-Path $isolatedHome 'Documents/PowerShell/Microsoft.PowerShell_profile.ps1'
+    New-Item -Path (Split-Path -Parent $isolatedProfile) -ItemType Directory -Force | Out-Null
+    New-Item -Path $isolatedProfile -ItemType File -Force | Out-Null
+
+    $originalHome = $env:HOME
+    $originalProfileOverride = $env:SEARCH_PROFILE_PATH
+    $originalHomeOverride = $env:SEARCH_HOME_OVERRIDE
+    try {
+      $env:HOME = $isolatedHome
+      $env:SEARCH_HOME_OVERRIDE = $isolatedHome
+      $env:SEARCH_PROFILE_PATH = $isolatedProfile
+
+      { & $installScript } | Should -Not -Throw
+      (Test-Path (Join-Path $isolatedHome '.extended-grep/search.ps1')) | Should -Be $true
+      (Test-Path (Join-Path $isolatedHome '.extended-grep/config/search-profiles.conf')) | Should -Be $true
+      (Get-Content -Path $isolatedProfile -Raw) | Should -Match 'function search'
+
+      { & $uninstallScript } | Should -Not -Throw
+      (Test-Path (Join-Path $isolatedHome '.extended-grep/search.ps1')) | Should -Be $false
+      (Test-Path (Join-Path $isolatedHome '.extended-grep/config/search-profiles.conf')) | Should -Be $false
+      (Get-Content -Path $isolatedProfile -Raw) | Should -Not -Match 'function search'
+    } finally {
+      if ([string]::IsNullOrWhiteSpace($originalHome)) {
+        Remove-Item Env:HOME -ErrorAction SilentlyContinue
+      } else {
+        $env:HOME = $originalHome
+      }
+      if ([string]::IsNullOrWhiteSpace($originalProfileOverride)) {
+        Remove-Item Env:SEARCH_PROFILE_PATH -ErrorAction SilentlyContinue
+      } else {
+        $env:SEARCH_PROFILE_PATH = $originalProfileOverride
+      }
+      if ([string]::IsNullOrWhiteSpace($originalHomeOverride)) {
+        Remove-Item Env:SEARCH_HOME_OVERRIDE -ErrorAction SilentlyContinue
+      } else {
+        $env:SEARCH_HOME_OVERRIDE = $originalHomeOverride
+      }
+    }
+  }
 }

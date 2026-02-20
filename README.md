@@ -40,6 +40,7 @@ Search result for `search "fox, "`:
 
 - `scripts/runtime/`: runtime search implementation (`search.sh`, `search.ps1`, `grepfunctions.sh`)
 - `scripts/install/`: platform installers
+- `scripts/uninstall/`: platform uninstallers
 - `scripts/tests/`: smoke tests and fixtures
 
 ## Prerequisites
@@ -153,6 +154,28 @@ Test-Path $PROFILE
 ```
 
 If your shell is started with `-NoProfile`, profile-based functions (including `search`) will not load automatically.
+
+## Uninstall
+
+macOS:
+
+```bash
+./scripts/uninstall/uninstall-macos.sh
+```
+
+Linux:
+
+```bash
+./scripts/uninstall/uninstall-linux.sh
+```
+
+Windows (PowerShell):
+
+```powershell
+./scripts/uninstall/uninstall-windows.ps1
+```
+
+Uninstall scripts remove installed files from your user home and clean the alias/profile line added during install.
 
 ## Usage
 
@@ -275,6 +298,9 @@ make test-linux
 make test-ps
 make test
 make run ARGS="fox"
+make uninstall-mac
+make uninstall-linux
+make uninstall-windows
 ```
 
 - `make` / `make help`: list available targets
