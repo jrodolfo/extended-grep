@@ -53,4 +53,4 @@ jobs:
 
       - name: Run PowerShell smoke tests
         shell: pwsh
-        run: Invoke-Pester ./tests/smoke.tests.windows.ps1
+        run: Invoke-Pester ./scripts/tests/smoke.tests.windows.ps1

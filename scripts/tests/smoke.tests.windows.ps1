@@ -3,8 +3,8 @@ $ErrorActionPreference = 'Stop'
 
 Describe 'search.ps1 smoke tests' {
   BeforeAll {
-    $script:repoRoot = Split-Path -Parent $PSScriptRoot
-    $script:searchScript = Join-Path $script:repoRoot 'search.ps1'
+    $script:repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+    $script:searchScript = Join-Path $script:repoRoot 'scripts/runtime/search.ps1'
     $script:configFile = Join-Path $script:repoRoot 'config/search-profiles.conf'
     $script:testRoot = Join-Path $script:repoRoot '.tmp-test-home'
     $script:resultsDir = Join-Path $script:testRoot 'search-results'
@@ -119,7 +119,7 @@ Describe 'search.ps1 smoke tests' {
     $outputFile = Join-Path $script:resultsDir 'fox_.grepx.txt'
     Remove-OutputFile $outputFile
 
-    Push-Location (Join-Path $script:repoRoot 'tests/documents/diverse')
+    Push-Location (Join-Path $script:repoRoot 'scripts/tests/documents/diverse')
     try {
       { & $script:searchScript '--format' 'txt' $query } | Should -Not -Throw
     } finally {
@@ -141,7 +141,7 @@ Describe 'search.ps1 smoke tests' {
     $outputFile = Join-Path $script:resultsDir "$query.grepx.txt"
     Remove-OutputFile $outputFile
 
-    Push-Location (Join-Path $script:repoRoot 'tests/documents/limits')
+    Push-Location (Join-Path $script:repoRoot 'scripts/tests/documents/limits')
     try {
       {
         & $script:searchScript '--format' 'txt' '--context' '0' '--max-per-file' '2' $query
@@ -162,7 +162,7 @@ Describe 'search.ps1 smoke tests' {
     $outputFile = Join-Path $script:resultsDir "$query.grepx.txt"
     Remove-OutputFile $outputFile
 
-    Push-Location (Join-Path $script:repoRoot 'tests/documents/limits')
+    Push-Location (Join-Path $script:repoRoot 'scripts/tests/documents/limits')
     try {
       {
         & $script:searchScript '--format' 'txt' '--context' '0' '--max-per-file' '0' '--max-scan-lines' '5' '--max-render-lines' '3' $query

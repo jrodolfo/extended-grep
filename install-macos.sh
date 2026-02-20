@@ -3,32 +3,4 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-TARGET_DIR="${HOME}/.local/bin"
-SHELL_RC="${HOME}/.zshrc"
-
-if [ ! -f "$SHELL_RC" ]; then
-  SHELL_RC="${HOME}/.bashrc"
-fi
-
-if ! command -v rg >/dev/null 2>&1; then
-  echo "ripgrep (rg) is required. Install with: brew install ripgrep"
-  exit 1
-fi
-
-mkdir -p "$TARGET_DIR"
-cp "$SCRIPT_DIR/search.sh" "$TARGET_DIR/search"
-cp "$SCRIPT_DIR/grepfunctions.sh" "$TARGET_DIR/grepfunctions.sh"
-mkdir -p "$TARGET_DIR/config"
-cp "$SCRIPT_DIR/config/search-profiles.conf" "$TARGET_DIR/config/search-profiles.conf"
-chmod +x "$TARGET_DIR/search"
-
-if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$SHELL_RC" 2>/dev/null; then
-  {
-    echo
-    echo '# extended-grep'
-    echo 'export PATH="$HOME/.local/bin:$PATH"'
-  } >> "$SHELL_RC"
-fi
-
-echo "Installed search to $TARGET_DIR/search"
-echo "Open a new terminal, then run: search STRING"
+exec "$SCRIPT_DIR/scripts/install/install-macos.sh" "$@"

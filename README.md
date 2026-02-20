@@ -36,6 +36,13 @@ Search result for `search "fox, "`:
 - Colorized HTML output per search for faster visual scanning
 - Works on macOS, Linux, and Windows
 
+## Project Layout
+
+- `scripts/runtime/`: runtime search implementation (`search.sh`, `search.ps1`, `grepfunctions.sh`)
+- `scripts/install/`: platform installers
+- `scripts/tests/`: smoke tests and fixtures
+- root-level `search.*` and `install-*` are thin compatibility wrappers
+
 ## Prerequisites
 
 - ripgrep (`rg`) installed and available on `PATH`
@@ -222,19 +229,19 @@ Windows PowerShell:
 macOS / bash:
 
 ```bash
-bash ./tests/smoke.tests.mac.sh
+bash ./scripts/tests/smoke.tests.mac.sh
 ```
 
 Linux / bash:
 
 ```bash
-bash ./tests/smoke.tests.linux.sh
+bash ./scripts/tests/smoke.tests.linux.sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-Invoke-Pester ./tests/smoke.tests.windows.ps1
+Invoke-Pester ./scripts/tests/smoke.tests.windows.ps1
 ```
 
 Make targets:
@@ -283,7 +290,7 @@ winget install Git.Git
 - GitHub Actions runs smoke tests on every push and pull request:
   - Linux: `make test-linux`
   - macOS: `make test-mac`
-  - Windows: `Invoke-Pester ./tests/smoke.tests.windows.ps1`
+  - Windows: `Invoke-Pester ./scripts/tests/smoke.tests.windows.ps1`
 
 ## Qodana Code Quality
 

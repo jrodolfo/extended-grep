@@ -3,8 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
-SEARCH_SCRIPT="$REPO_ROOT/search.sh"
+REPO_ROOT=$(cd -- "$SCRIPT_DIR/../.." && pwd)
+SEARCH_SCRIPT="$REPO_ROOT/scripts/runtime/search.sh"
 
 if ! command -v rg >/dev/null 2>&1; then
   echo "Error: ripgrep (rg) is required for smoke tests." >&2
@@ -149,7 +149,7 @@ query='fox'
 out="$RESULTS_DIR/${query}.grepx.html"
 rm -f "$out"
 (
-  cd "$REPO_ROOT/tests/documents"
+  cd "$REPO_ROOT/scripts/tests/documents"
   SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" "$query" >/dev/null
 )
 assert_file_exists "$out"
@@ -175,7 +175,7 @@ query='fox, '
 out="$RESULTS_DIR/fox_.grepx.txt"
 rm -f "$out"
 (
-  cd "$REPO_ROOT/tests/documents/diverse"
+  cd "$REPO_ROOT/scripts/tests/documents/diverse"
   SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" --format txt "$query" >/dev/null
 )
 assert_file_exists "$out"
@@ -193,7 +193,7 @@ query='fox'
 out="$RESULTS_DIR/${query}.grepx.txt"
 rm -f "$out"
 (
-  cd "$REPO_ROOT/tests/documents/limits"
+  cd "$REPO_ROOT/scripts/tests/documents/limits"
   SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" --format txt --context 0 --max-per-file 2 "$query" >/dev/null
 )
 assert_file_exists "$out"
@@ -208,7 +208,7 @@ query='fox'
 out="$RESULTS_DIR/${query}.grepx.txt"
 rm -f "$out"
 (
-  cd "$REPO_ROOT/tests/documents/limits"
+  cd "$REPO_ROOT/scripts/tests/documents/limits"
   SEARCH_RESULTS_DIR="$RESULTS_DIR" bash "$SEARCH_SCRIPT" --format txt --context 0 --max-per-file 0 --max-scan-lines 5 --max-render-lines 3 "$query" >/dev/null
 )
 assert_file_exists "$out"

@@ -1,4 +1,4 @@
 # Keep GitHub Linguist focused on source code languages.
 # Test fixture HTML files should not drive repository language stats.
-tests/documents/*.html linguist-vendored
-tests/documents/**/*.html linguist-vendored
+scripts/tests/documents/*.html linguist-vendored
+scripts/tests/documents/**/*.html linguist-vendored

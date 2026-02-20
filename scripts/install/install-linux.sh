@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd -- "$SCRIPT_DIR/../.." && pwd)
+RUNTIME_DIR="$REPO_ROOT/scripts/runtime"
+TARGET_DIR="${HOME}/.local/bin"
+
+print_rg_install_hint() {
+  local os_id=""
+  if [ -r /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    os_id="${ID:-}"
+  fi
+
+  if [ "$os_id" = "amzn" ]; then
+    cat <<'EOF'
+ripgrep (rg) is required.
+Amazon Linux 2023 may not have ripgrep in the default enabled repos.
+Try one of these:
+  1) Build from Rust toolchain:
+     sudo dnf install -y cargo
+     cargo install ripgrep
+     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+     source ~/.bashrc
+     rg --version
+  2) Install ripgrep binary from GitHub releases:
+     https://github.com/BurntSushi/ripgrep/releases
+Note: on Amazon Linux, yum uses dnf under the hood, so yum vs dnf is usually not the root cause.
+EOF
+    return
+  fi
+
+  if command -v dnf >/dev/null 2>&1; then
+    echo "ripgrep (rg) is required. Install with: sudo dnf install -y ripgrep"
+    return
+  fi
+  if command -v apt-get >/dev/null 2>&1; then
+    echo "ripgrep (rg) is required. Install with: sudo apt-get update && sudo apt-get install -y ripgrep"
+    return
+  fi
+  if command -v yum >/dev/null 2>&1; then
+    echo "ripgrep (rg) is required. Install with: sudo yum install -y ripgrep"
+    return
+  fi
+  if command -v zypper >/dev/null 2>&1; then
+    echo "ripgrep (rg) is required. Install with: sudo zypper install -y ripgrep"
+    return
+  fi
+  if command -v pacman >/dev/null 2>&1; then
+    echo "ripgrep (rg) is required. Install with: sudo pacman -Sy ripgrep"
+    return
+  fi
+  echo "ripgrep (rg) is required. Install it with your Linux package manager."
+}
+
+ensure_path_entry() {
+  local rc_file="$1"
+  [ -f "$rc_file" ] || return 0
+  if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$rc_file" 2>/dev/null; then
+    {
+      echo
+      echo '# extended-grep'
+      echo 'export PATH="$HOME/.local/bin:$PATH"'
+    } >> "$rc_file"
+  fi
+}
+
+if ! command -v rg >/dev/null 2>&1; then
+  print_rg_install_hint
+  exit 1
+fi
+
+mkdir -p "$TARGET_DIR"
+cp "$RUNTIME_DIR/search.sh" "$TARGET_DIR/search"
+cp "$RUNTIME_DIR/grepfunctions.sh" "$TARGET_DIR/grepfunctions.sh"
+mkdir -p "$TARGET_DIR/config"
+cp "$REPO_ROOT/config/search-profiles.conf" "$TARGET_DIR/config/search-profiles.conf"
+chmod +x "$TARGET_DIR/search"
+
+ensure_path_entry "${HOME}/.bashrc"
+ensure_path_entry "${HOME}/.zshrc"
+
+echo "Installed search to $TARGET_DIR/search"
+echo "Open a new terminal, then run: search a-string"

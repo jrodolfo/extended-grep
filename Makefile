@@ -13,13 +13,13 @@ help:
 test: test-mac test-ps
 
 test-mac:
-	bash ./tests/smoke.tests.mac.sh
+	bash ./scripts/tests/smoke.tests.mac.sh
 
 test-linux:
-	bash ./tests/smoke.tests.linux.sh
+	bash ./scripts/tests/smoke.tests.linux.sh
 
 test-ps:
-	pwsh -NoProfile -Command "Invoke-Pester ./tests/smoke.tests.windows.ps1"
+	pwsh -NoProfile -Command "Invoke-Pester ./scripts/tests/smoke.tests.windows.ps1"
 
 run:
-	bash ./search.sh $(ARGS)
+	bash ./scripts/runtime/search.sh $(ARGS)

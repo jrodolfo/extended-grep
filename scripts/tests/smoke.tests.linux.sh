@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [ "$(uname -s)" != "Linux" ]; then
-  echo "Error: tests/smoke.tests.linux.sh must be run on Linux." >&2
+  echo "Error: scripts/tests/smoke.tests.linux.sh must be run on Linux." >&2
   exit 1
 fi
 

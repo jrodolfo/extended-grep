@@ -9,13 +9,13 @@ All notable changes to this project are documented in this file.
 - `--profile-list` option in `search.sh` and `search.ps1`.
 - `--version` and `--open` options in `search.sh` and `search.ps1`.
 - `--format html|txt` option in `search.sh` and `search.ps1` (default remains HTML).
-- Linux installer script `install-linux.sh`.
-- Linux smoke test entrypoint `tests/smoke.tests.linux.sh`.
-- Diverse multi-format fixtures under `tests/documents/diverse` to strengthen smoke coverage.
-- Limit-focused fixtures/assertions under `tests/documents/limits` covering `--max-per-file`, `--max-scan-lines`, and `--max-render-lines`.
+- Linux installer script `scripts/install/install-linux.sh`.
+- Linux smoke test entrypoint `scripts/tests/smoke.tests.linux.sh`.
+- Diverse multi-format fixtures under `scripts/tests/documents/diverse` to strengthen smoke coverage.
+- Limit-focused fixtures/assertions under `scripts/tests/documents/limits` covering `--max-per-file`, `--max-scan-lines`, and `--max-render-lines`.
 - `Makefile` targets for `help`, `test-mac`, `test-ps`, `test`, and `run`.
 - GitHub Actions CI workflow for Linux, macOS, and Windows smoke tests.
-- macOS smoke test script `tests/smoke.tests.mac.sh` with deterministic fixture assertions.
+- macOS smoke test script `scripts/tests/smoke.tests.mac.sh` with deterministic fixture assertions.
 
 ### Changed
 - Search profile definitions and default limits now come from a single source of truth (`config/search-profiles.conf`).

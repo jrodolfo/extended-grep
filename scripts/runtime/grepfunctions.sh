@@ -5,7 +5,13 @@
 set -o pipefail
 
 _grepf_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-SEARCH_CONFIG_FILE="${SEARCH_CONFIG_FILE:-$_grepf_dir/config/search-profiles.conf}"
+if [ -z "${SEARCH_CONFIG_FILE:-}" ]; then
+  if [ -f "$_grepf_dir/config/search-profiles.conf" ]; then
+    SEARCH_CONFIG_FILE="$_grepf_dir/config/search-profiles.conf"
+  else
+    SEARCH_CONFIG_FILE="$_grepf_dir/../../config/search-profiles.conf"
+  fi
+fi
 
 config_has_key() {
   local key="$1"
