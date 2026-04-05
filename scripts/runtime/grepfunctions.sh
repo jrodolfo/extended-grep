@@ -335,7 +335,7 @@ run_content_search() {
   local query="$2"
 
   build_profile_args "$profile" || return $?
-  rg "${RG_WORK_ARGS[@]}" -- "$query" .
+  rg "${RG_WORK_ARGS[@]}" --fixed-strings -- "${query}" .
 }
 
 run_filename_search() {
@@ -359,7 +359,7 @@ run_filename_search() {
     append_profile_globs "$(profile_file_globs_key "$profile")"
   fi
 
-  rg "${RG_WORK_ARGS[@]}" | rg --smart-case --color=never -- "$query"
+  rg "${RG_WORK_ARGS[@]}" | rg --fixed-strings --smart-case --color=never -- "${query}"
 }
 
 emit_html_header() {
@@ -499,6 +499,9 @@ render_content_report() {
         current_file="$file_path"
         current_file_index=$((current_file_index + 1))
         current_file_total_hits=$(awk -F '\t' -v f="$file_path" '$1==f {print $2; exit}' "$counts_file")
+        if [ -z "$current_file_total_hits" ]; then
+          current_file_total_hits=0
+        fi
         current_file_hit_index=0
         skip_context_after_last_hit=0
         printf '<div class="file">\n'
@@ -534,6 +537,9 @@ render_content_report() {
         current_file="$file_path"
         current_file_index=$((current_file_index + 1))
         current_file_total_hits=$(awk -F '\t' -v f="$file_path" '$1==f {print $2; exit}' "$counts_file")
+        if [ -z "$current_file_total_hits" ]; then
+          current_file_total_hits=0
+        fi
         current_file_hit_index=0
         skip_context_after_last_hit=0
         printf '<div class="file">\n'
@@ -650,6 +656,9 @@ render_content_report_txt() {
         current_file="$file_path"
         current_file_index=$((current_file_index + 1))
         current_file_total_hits=$(awk -F '\t' -v f="$file_path" '$1==f {print $2; exit}' "$counts_file")
+        if [ -z "$current_file_total_hits" ]; then
+          current_file_total_hits=0
+        fi
         current_file_hit_index=0
         skip_context_after_last_hit=0
         printf '\n(file %s of %s) %s\n' "$current_file_index" "$total_files" "$file_path"
@@ -686,6 +695,9 @@ render_content_report_txt() {
         current_file="$file_path"
         current_file_index=$((current_file_index + 1))
         current_file_total_hits=$(awk -F '\t' -v f="$file_path" '$1==f {print $2; exit}' "$counts_file")
+        if [ -z "$current_file_total_hits" ]; then
+          current_file_total_hits=0
+        fi
         current_file_hit_index=0
         skip_context_after_last_hit=0
         printf '\n(file %s of %s) %s\n' "$current_file_index" "$total_files" "$file_path"

@@ -1,4 +1,5 @@
 {
   "animal": "fox",
-  "note": "fox, jumps quickly"
+  "note": "fox, jumps quickly",
+  "identifier": "aws.bedrock.chat.journal"
 }

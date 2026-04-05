@@ -245,7 +245,7 @@ function Run-ContentSearch(
   [int]$MaxScanLines
 ) {
   $rgArgs = Get-ContentArgs -Profile $Profile -IncludeHidden $IncludeHidden -ContextLines $ContextLines -MaxPerFile $MaxPerFile -MaxFileSize $MaxFileSize
-  $rgArgs += @('--', $Query, '.')
+  $rgArgs += @('--fixed-strings', '--', $Query, '.')
   if ($MaxScanLines -gt 0) {
     $results = & rg @rgArgs | Select-Object -First $MaxScanLines
   } else {
@@ -261,7 +261,7 @@ function Run-FilenameSearch([string]$Profile, [string]$Query, [string]$OutFile, 
   } else {
     $files = & rg @rgArgs
   }
-  $matches = $files | & rg --smart-case --color=never -- $Query
+  $matches = $files | & rg --fixed-strings --smart-case --color=never -- $Query
   $matches | Set-Content -Encoding UTF8 $OutFile
 }
 

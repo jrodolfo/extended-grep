@@ -136,6 +136,27 @@ Describe 'search.ps1 smoke tests' {
     $content | Should -Match '\[\[fox, \]\]'
   }
 
+  It 'treats dotted identifiers literally in TXT mode' {
+    $query = 'aws.bedrock.chat.journal'
+    $outputFile = Join-Path $script:resultsDir "$query.grepx.txt"
+    Remove-OutputFile $outputFile
+
+    Push-Location (Join-Path $script:repoRoot 'scripts/tests/documents/diverse')
+    try {
+      { & $script:searchScript '--format' 'txt' $query } | Should -Not -Throw
+    } finally {
+      Pop-Location
+    }
+
+    (Test-Path $outputFile) | Should -Be $true
+    $content = Get-Content -Path $outputFile -Raw
+    $content | Should -Match 'sample.json'
+    $content | Should -Match 'sample.yaml'
+    $content | Should -Match 'sample.xml'
+    $content | Should -Match '\[\[aws.bedrock.chat.journal\]\]'
+    $content | Should -Not -Match 'sample.csv'
+  }
+
   It 'enforces --max-per-file in TXT mode' {
     $query = 'fox'
     $outputFile = Join-Path $script:resultsDir "$query.grepx.txt"

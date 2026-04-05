@@ -1,2 +1,3 @@
 animal: fox
 note: "fox, in yaml"
+identifier: "aws.bedrock.chat.journal"

@@ -1,4 +1,5 @@
 <root>
     <animal>fox</animal>
     <note>fox, in xml</note>
+    <identifier>aws.bedrock.chat.journal</identifier>
 </root>
