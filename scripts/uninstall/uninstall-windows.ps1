@@ -6,7 +6,8 @@ $targetScript = Join-Path $targetDir 'search.ps1'
 $targetConfigFile = Join-Path $targetDir 'config/search-profiles.conf'
 $targetConfigDir = Join-Path $targetDir 'config'
 $profilePath = if ($env:SEARCH_PROFILE_PATH) { $env:SEARCH_PROFILE_PATH } else { $PROFILE }
-$aliasLine = "function search { & '$targetDir/search.ps1' @args }"
+$legacyAliasLine = "function search { & '$targetDir/search.ps1' @args }"
+$managedPattern = "(?ms)^\s*# >>> extended-grep >>>.*?# <<< extended-grep <<<\s*"
 
 function Remove-FileIfExists([string]$Path) {
   if (Test-Path $Path) {
@@ -37,9 +38,16 @@ if (Test-Path $targetDir) {
 }
 
 if (Test-Path $profilePath) {
-  $lines = Get-Content -Path $profilePath
-  $filtered = @($lines | Where-Object { $_ -ne $aliasLine -and $_ -ne '# extended-grep' })
-  Set-Content -Path $profilePath -Value $filtered
+  $content = Get-Content -Path $profilePath -Raw -ErrorAction SilentlyContinue
+  if ($null -eq $content) {
+    $content = ''
+  }
+
+  $updated = [regex]::Replace([string]$content, $managedPattern, '')
+  $legacyLines = @($updated -split "`r?`n" | Where-Object {
+    $_ -ne $legacyAliasLine -and $_ -ne '# extended-grep'
+  })
+  Set-Content -Path $profilePath -Value $legacyLines
   Write-Host "Updated PowerShell profile: $profilePath"
 }
 
