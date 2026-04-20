@@ -1,5 +1,8 @@
 # extended-grep
 
+[![CI](https://github.com/jrodolfo/extended-grep/actions/workflows/ci.yml/badge.svg)](https://github.com/jrodolfo/extended-grep/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 `extended-grep` is a wrapper around `rg` (ripgrep) that saves search results as HTML files in `~/search-results`.
 
 ## Why use extended-grep
@@ -360,3 +363,15 @@ Run in GitHub:
 
 - The Qodana workflow runs on push to `master`, on pull requests, and via manual trigger (`workflow_dispatch`).
 - To publish cloud/PR results, add `QODANA_TOKEN` in repository secrets.
+
+## Contact
+
+- Software Developer: Rod Oliveira
+- GitHub: https://github.com/jrodolfo
+- Webpage: https://jrodolfo.net
+
+## License
+
+- MIT License
+- Copyright (c) 2026 Rod Oliveira
+- See [LICENSE](./LICENSE)
