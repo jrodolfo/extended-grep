@@ -1,7 +1,7 @@
 # extended-grep
 
 [![CI](https://github.com/jrodolfo/extended-grep/actions/workflows/ci.yml/badge.svg)](https://github.com/jrodolfo/extended-grep/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](/LICENSE)
 
 `extended-grep` is a wrapper around `rg` (ripgrep) that saves search results as HTML files in `~/search-results`.
 
@@ -352,4 +352,4 @@ winget install Git.Git
 
 - MIT License
 - Copyright (c) 2026 Rod Oliveira
-- See [LICENSE](./LICENSE)
+- See [LICENSE](/LICENSE)
