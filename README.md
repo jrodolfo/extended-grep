@@ -7,7 +7,7 @@
 
 ## Why use extended-grep
 
-- Exact-string searches for tricky patterns, including trailing spaces and punctuation (for example: "fox, "). This is especially useful when searching logs or source code for text that other tools may trim or normalize.
+- Exact-string searches for tricky patterns, including trailing spaces and punctuation (for example, you can search for "fox, "). This is especially useful when searching logs or source code for text that other tools may trim or normalize.
 
 - Search results are written to clean HTML reports, making large searches easy to review without flooding your terminal.
 
