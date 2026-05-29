@@ -7,9 +7,13 @@
 
 ## Why use extended-grep
 
-- Better handling for tricky search strings in day-to-day usage (for example: `search "fox, "`).
-- Search results are written to HTML reports, so your terminal stays clean even for large searches.
-- Optional TXT reports (`--format txt`) are useful on terminal-only Linux servers.
+- Exact-string searches for tricky patterns, including trailing spaces and punctuation (for example: fox, ). This is especially useful when searching logs or source code for text that other tools may trim or normalize.
+
+- Search results are written to clean HTML reports, making large searches easy to review without flooding your terminal.
+
+- Optional TXT reports (--format txt) work well on terminal-only Linux servers and integrate naturally with build and CI pipelines.
+
+- Great for build-pipeline log analysis, allowing automated searches across folders and producing readable reports you can review later.
 
 Example:
 
